@@ -1,30 +1,17 @@
+from audioop import avg
 import matplotlib.pyplot as plt
 import numpy as np
+import faulthandler
+
 
 class Node:
-    def __init__(self,id,arena_w,arena_h) -> None:
-        self.index = id
+    def __init__(self,id,arena_w,arena_h):
         self.node_id = np.array([int(id/arena_w),id%arena_w])
-        self.probability = 1/(arena_h*arena_w)
-        self.cost = 0
+        self.probability = 1.0/(arena_h*arena_w)
+        self.cost = 0.0
         self.distance = None
         self.parent = None
-        self.f = 0
-        self.neighbors = []
-    
-    def add_neighbors(self,grid,column,row):
-
-        neighbor_x = self.node_id[0]
-        neighbor_y = self.node_id[1]
-    
-        if neighbor_x < column - 1:
-            self.neighbors.append(grid[neighbor_x+1][neighbor_y])
-        if neighbor_x > 0:
-            self.neighbors.append(grid[neighbor_x-1][neighbor_y])
-        if neighbor_y < row:
-            self.neighbors.append(grid[neighbor_x][neighbor_y +1])
-        if neighbor_y > 0: 
-            self.neighbors.append(grid[neighbor_x][neighbor_y-1])
+        self.f = 0.0
 
 class Robot:
     def __init__(self,id,arena_w,arena_h,nodes):
@@ -39,75 +26,10 @@ class Robot:
         self.path_trace_past = None
 
     def loc(self,nodes):
-        probs = probabilities_(nodes,self.arena_w,self.arena_h)
+        probs = probabilities_(nodes)
         probs = probs.reshape(self.arena_h*self.arena_w).astype(float)
         random_loc_num = np.random.choice(range(self.arena_h*self.arena_w),p=probs/np.sum(probs))
         return np.array([int(random_loc_num/self.arena_w),random_loc_num%self.arena_w])
-
-
-def path_finder(origin,goal,grid,fig,ax):
-    ax.clear()
-    prob_cost_map = np.ones(grid.shape)*0.5
-    prob_cost_map[origin[0],origin[1]] = 0.0
-    cs = ax.pcolormesh(range(arena_w),range(arena_h),prob_cost_map,shading='auto')
-    cs.set_clim(0,1)
-    ax.set_aspect('equal', 'box')
-    major_ticks = np.arange(0, 101, 1)
-    minor_ticks = np.arange(0, 101, 1)
-    ax.set_xticks(major_ticks)
-    ax.set_xticks(minor_ticks, minor=True)
-    ax.set_yticks(major_ticks)
-    ax.set_yticks(minor_ticks, minor=True)
-    ax.grid(b=True, which='major', color='black', linestyle='-',linewidth = 0.2)
-    ax.grid(b=True, which='minor', color='black', linestyle='-',linewidth = 0.2)
-    ax.axes.xaxis.set_ticks([])
-    ax.axes.yaxis.set_ticks([])
-    plt.show()
-     
-    finished = False
-    present_loc = origin
-    count=0
-    probabilities = np.copy(grid)
-    path = [present_loc]
-    ax.scatter([goal[1]+0.5],[goal[0]+0.5],edgecolors='black', facecolors='none',s=5)
-    while not finished:
-        next_finder = np.zeros(grid.shape)
-        ax.scatter([path[-1][1]+0.5],[path[-1][0]+0.5],edgecolors='orange', facecolors='none',s=5)
-        plt.show()
-        left = present_loc - np.array([0,1])
-        right = present_loc + np.array([0,1])
-        top = present_loc + np.array([1,0])
-        bottom = present_loc - np.array([1,0])
-
-        if left[0]>=0 and left[0]<grid.shape[0] and left[1]>=0 and left[1]<grid.shape[1]:
-            next_finder[left[0],left[1]] = probabilities[left[0],left[1]].probability
-        if right[0]>=0 and right[0]<grid.shape[0] and right[1]>=0 and right[1]<grid.shape[1]:
-            next_finder[right[0],right[1]] = probabilities[right[0],right[1]].probability
-        if top[0]>=0 and top[0]<grid.shape[0] and top[1]>=0 and top[1]<grid.shape[1]:
-            next_finder[top[0],top[1]] = probabilities[top[0],top[1]].probability
-        if bottom[0]>=0 and bottom[0]<grid.shape[0] and bottom[1]>=0 and bottom[1]<grid.shape[1]:
-            next_finder[bottom[0],bottom[1]] = probabilities[bottom[0],bottom[1]].probability
-
-        loc = np.where(next_finder == np.max(next_finder))
-        choosen = np.random.randint(0,len(loc[0]))
-        present_loc = np.array([loc[0][choosen],loc[1][choosen]])
-        path.append(present_loc)
-        
-        probabilities[present_loc[0],present_loc[1]].probability = max(0,probabilities[present_loc[0],present_loc[1]].probability - 1/(grid.shape[0]*grid.shape[1]))
-
-        if present_loc[0] == goal[0] and present_loc[1] == goal[1]:
-            finished=True
-        count += 1
-
-    return path
-
-
-def to_be_visited(num_grids,visited_and_distance):
-    v = -10
-    for i in range(num_grids):
-        if visited_and_distance[i][0] == 0 and (v < 0 or visited_and_distance[i][1] <= visited_and_distance[v][1]):
-            v = i
-    return v
 
 def cost_map_(grids):
     cost = np.zeros_like(grids)
@@ -115,6 +37,13 @@ def cost_map_(grids):
         for j in range(grids.shape[1]):
             cost[i,j] = grids[i,j].cost
     return cost
+
+def probabilities_(grids):
+    prob = np.zeros_like(grids)
+    for i in range(grids.shape[0]):
+        for j in range(grids.shape[1]):
+            prob[i,j] = grids[i,j].probability
+    return prob
 
 def Astar(grids,source,destination):
     # plt.ion()
@@ -170,7 +99,7 @@ def Astar(grids,source,destination):
             current = current_node
             while current is not None:
                 path.append(current.node_id)
-                # ax1.scatter([current.node_id[1]+0.5],[current.node_id[0]+0.5],color='brown',s=50)
+                # ax1.scatter([current.node_id[1]+0.5],[current.node_id[0]+0.5],color='brown',s=250)
                 current = current.parent
                 
                 
@@ -226,44 +155,32 @@ def Astar(grids,source,destination):
                 open_nodes.append(child)
             # ax1.scatter([destination[1]+0.5],[destination[0]+0.5],color = 'violet')
             # ax1.scatter([source[1]+0.5],[source[0]+0.5],color = 'black')
-
-    print(path)
-    # visited_and_distance = [[0,np.Infinity,cost_map[int(i/grids.shape[1]),i%grids.shape[1]]] for i in range(num_grids)]
-    # visited_and_distance[source[0]*grids.shape[1]+source[1]] = [0,0,cost_map[int(i/grids.shape[1]),i%grids.shape[1]]]
-
-    # for vertex in range(num_grids):
-    #     to_visit = to_be_visited(num_grids,visited_and_distance)
-    #     for neighbor in range(num_grids):
-    #         if vertices[to_visit][neighbor] == 1 and visited_and_distance[neighbor][0] == 0:
-    #             new_cost = visited_and_distance[to_visit][1] + edges[to_visit][neighbor] + visited_and_distance[to_visit][2]
-    #             if visited_and_distance[neighbor][1] > new_cost:
-    #                 visited_and_distance[neighbor][1] = new_cost
-    #         visited_and_distance[to_visit][0] = 1
-    # print(visited_and_distance)
     return path
-
-def probabilities_(grids,arena_w,arena_h):
-    prob = np.zeros_like(grids)
-    for i in range(grids.shape[0]):
-        for j in range(grids.shape[1]):
-            prob[i,j] = grids[i,j].probability
-    return prob
 
 def intruder_(arena_w,arena_h,grids,ax):
     intruder = Robot(-1,arena_w,arena_h,grids)    #   Spawn Intruder
     random_loc_num = np.random.choice(range(arena_h*arena_w))
     intruder.present_loc = np.array([int(random_loc_num/arena_w),random_loc_num%arena_w])
-    intru = ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],color='red',s=5)
+    intru = ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],color='red',s=25)
     ax.add_artist(intru)
     return intruder
+
+def intruder_plot(intruder,ax):
+    intru = ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],color='red',s=25)
+    ax.add_artist(intru)
 
 def searchers(num_robots,arena_w,arena_h,grids,ax):
     robots = [] #   Spawn Robots
     for i in range(num_robots):
         robots.append(Robot(i,arena_w,arena_h,grids))
-        robots[i].body = ax.scatter([robots[i].present_loc[1]+0.5],[robots[i].present_loc[0]+0.5],color='violet',s=5)
+        robots[i].body = ax.scatter([robots[i].present_loc[1]+0.5],[robots[i].present_loc[0]+0.5],color='pink',s=25)
         ax.add_artist(robots[i].body)
     return robots
+
+def searchers_plot(robots,ax):
+    for r in robots:
+        r.body = ax.scatter([r.present_loc[1]+0.5],[r.present_loc[0]+0.5],color='pink',s=25)
+        ax.add_artist(r.body)
 
 def visited_loc(robots):
     present_locs = []
@@ -276,9 +193,9 @@ def plot_past_path(ax,robots):
     for r in robots:
         if not isinstance(r.path_trace_past,type(None)):
             for p in r.path_trace_past:
-                ax.scatter([r.path_trace_past[0][1]+0.5],[r.path_trace_past[0][0]+0.5],edgecolors='green', facecolors='none')
-                ax.scatter([p[1]+0.5],[p[0]+0.5],edgecolors='yellow', facecolors='none',s=5)
-                ax.scatter([r.path_trace_past[-1][1]+0.5],[r.path_trace_past[-1][0]+0.5],edgecolors='black', facecolors='none')
+                ax.scatter([p[1]+0.5],[p[0]+0.5],edgecolors='maroon', facecolors='none',s=60)
+            ax.scatter([r.path_trace_past[0][1]+0.5],[r.path_trace_past[0][0]+0.5],edgecolors='black',s=25, facecolors='none')
+            ax.scatter([r.path_trace_past[-1][1]+0.5],[r.path_trace_past[-1][0]+0.5],edgecolors='white',s=25, facecolors='none')
 
 def update_prob_costs(grids,present_locs,arena_h,arena_w):
     for row in range(grids.shape[0]): #   Update the Costs and Probabilities of the grids
@@ -289,13 +206,13 @@ def update_prob_costs(grids,present_locs,arena_h,arena_w):
                     grids[loc[0],loc[1]].probability -= 1/(arena_h*arena_w)
                     if grids[loc[0],loc[1]].probability<0:
                         grids[loc[0],loc[1]].probability=0
-                    grids[loc[0],loc[1]].cost += 1
+                    grids[loc[0],loc[1]].cost += 1/(arena_h*arena_w)
                 else:
-                    grids[loc[0],loc[1]].probability += 1*len(present_locs)/(arena_h*arena_w*(arena_h*arena_w))
+                    grids[loc[0],loc[1]].probability += 1/(arena_h*arena_w*len(present_locs))
 
-def plot_mesh(fig,ax,arena_w,arena_h,map,without_bar=0):
-    cs = ax.pcolormesh(range(arena_w),range(arena_h),map,shading='auto')
-    # neg = ax.imshow(map, cmap='Reds_r', interpolation='none')
+def plot_mesh(fig,ax,arena_w,arena_h,grid,title,without_bar=0):
+    grid = np.round(np.array(grid).astype(float),decimals=4)
+    cs = ax.pcolormesh(grid,shading='auto',cmap='plasma')
     if not without_bar:
         cbar = fig.colorbar(cs,orientation='vertical')
         cbar.set_ticks(np.arange(0,1,0.1))
@@ -309,93 +226,92 @@ def plot_mesh(fig,ax,arena_w,arena_h,map,without_bar=0):
     ax.set_yticks(minor_ticks, minor=True)
     ax.grid(b=True, which='major', color='black', linestyle='-',linewidth = 0.2)
     ax.grid(b=True, which='minor', color='black', linestyle='-',linewidth = 0.2)
-    ax.axes.xaxis.set_ticks([])
-    ax.axes.yaxis.set_ticks([])
+    ax.set_title(title)
+    # ax.axes.xaxis.set_ticks([])
+    # ax.axes.yaxis.set_ticks([])
 
 arena_w = 10
 arena_h = 10
 
-grids = np.array([Node(i,arena_h=arena_h,arena_w=arena_w) for i in range(arena_w*arena_h)]).reshape((arena_h,arena_w))
-probabilities = probabilities_(grids,arena_w,arena_h)
-
-plt.ion()
-fig,ax = plt.subplots()
-
-plot_mesh(fig,ax,arena_w,arena_h,probabilities)
 
 time = []
 agents = []
-
-for num_robots in range(5,25,5):    
-    t = 0   #   Initialize time
-    search_state =  0 #   0 = not found, 1 = found
+plt.ion()
+fig,ax = plt.subplots()
+fig1,ax1 = plt.subplots()
+faulthandler.enable()
+for num_robots in range(1,25,1):
     
-    robots = searchers(num_robots,arena_w,arena_h,grids,ax)
-    intruder = intruder_(arena_w,arena_h,grids,ax)
-    ax.clear()
-    plot_mesh(fig,ax,arena_w,arena_h,probabilities,without_bar = 1)
-    while not search_state: #   While Intruder is not found
-        # ax.clear()
-        present_locs = visited_loc(robots)
+    avg_time = []
+    for runs in range(10):
+        t = 0   #   Initialize time
+        search_state =  0 #   0 = not found, 1 = found
+        ax.clear()
+        ax1.clear()
+        grids = np.array([Node(i,arena_h=arena_h,arena_w=arena_w) for i in range(arena_w*arena_h)]).reshape((arena_h,arena_w))
+        probabilities = probabilities_(grids)
+        costs = cost_map_(grids)
+        if num_robots ==1 and runs ==0:
+            without_bar = 0
+        else:
+            without_bar = 1
+        
+        plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar)
+        plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar)    
 
-        update_prob_costs(grids,present_locs,arena_h,arena_w)
+        robots = searchers(num_robots,arena_w,arena_h,grids,ax)
+        intruder = intruder_(arena_w,arena_h,grids,ax)
+        intruder_plot(intruder,ax1)
+        searchers_plot(robots,ax1)
+        while not search_state: #   While Intruder is not found
+            ax.clear()
+            ax1.clear()
+            present_locs = visited_loc(robots)
+            update_prob_costs(grids,present_locs,arena_h,arena_w)
+            probabilities = probabilities_(grids)
+            costs = cost_map_(grids)
+            plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar=1)
+            plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar=1)
 
-        probabilities = probabilities_(grids,arena_w,arena_h)
+            intruder_plot(intruder,ax1)
+            searchers_plot(robots,ax1)
 
-        intru = ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],color='red',s=5)
-        ax.add_artist(intru)
-        cs = ax.pcolormesh(range(arena_h),range(arena_w),np.array(probabilities),shading='auto')
-        ax.set_aspect('equal', 'box')
-        major_ticks = np.arange(0, 101, 1)
-        minor_ticks = np.arange(0, 101, 1)
-        ax.set_xticks(major_ticks)
-        ax.set_xticks(minor_ticks, minor=True)
-        ax.set_yticks(major_ticks)
-        ax.set_yticks(minor_ticks, minor=True)
-        ax.grid(b=True, which='major', color='black', linestyle='-',linewidth = 0.2)
-        ax.grid(b=True, which='minor', color='black', linestyle='-',linewidth = 0.2)
-        ax.axes.xaxis.set_ticks([])
-        ax.axes.yaxis.set_ticks([])
-        for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
-            robots[i].body = ax.scatter([robots[i].present_loc[1]+0.5],[robots[i].present_loc[0]+0.5],color='violet',s=5)
-            ax.add_artist(robots[i].body)
-        plot_past_path(ax,robots)
-        plt.show()
-        plt.pause(0.001)
-
-        paths = []
-        for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
-            robots[i].next_loc = robots[i].loc(grids)
-
-            for g in grids:
-                for g_ij in g:
-                    g_ij.parent = None
-            path = Astar(grids,robots[i].present_loc,robots[i].next_loc)#path_finder(robots[i].present_loc,robots[i].next_loc,grids,fig,ax)
-
-            for p in range(len(path)-1):
-                ax.scatter([path[p][1]+0.5],[path[p][0]+0.5],color='yellow',s=5)
-                ax.plot([path[p][1]+0.5,path[p+1][1]+0.5],[path[p][0]+0.5,path[p+1][0]+0.5],color= 'black',alpha=0.2)
-            ax.scatter([path[0][1]+0.5],[path[0][0]+0.5],edgecolors='white', facecolors='none')
-            ax.scatter([path[-1][1]+0.5],[path[-1][0]+0.5],marker='x',color = 'black')
+            plot_past_path(ax,robots)
             plt.show()
             plt.pause(0.001)
-            
-            robots[i].path_trace_past = path#robots[i].path_trace
-            robots[i].path_trace = path
-            paths+= path
 
-            robots[i].past_loc = robots[i].present_loc
-            robots[i].present_loc = robots[i].next_loc
+            paths = []
+            for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
+                robots[i].next_loc = robots[i].loc(grids)
 
-        t += 1
-        for p in paths:
-            if np.linalg.norm(intruder.present_loc-np.array(p))==0:
-                search_state = 1
-                break       
-        
-        
+                for g in grids:
+                    for g_ij in g:
+                        g_ij.parent = None
+                path = Astar(grids,robots[i].present_loc,robots[i].next_loc)
+                for p in range(len(path)-1):
+                    ax.scatter([path[p][1]+0.5],[path[p][0]+0.5],color='white',s=25)
+                    # ax.plot([path[p][1]+0.5,path[p+1][1]+0.5],[path[p][0]+0.5,path[p+1][0]+0.5],color= 'black',alpha=0.2)
+                ax.scatter([path[0][1]+0.5],[path[0][0]+0.5],edgecolors='white',s=25, facecolors='none')
+                ax.scatter([path[-1][1]+0.5],[path[-1][0]+0.5],marker='x',color = 'green')
+                plt.show()
+                plt.pause(0.001)
+                
+                robots[i].path_trace_past = path#robots[i].path_trace
+                robots[i].path_trace = path
+                paths+= path
 
-    time.append(t)  #   Store time taken to find the intruder
+                robots[i].past_loc = robots[i].present_loc
+                robots[i].present_loc = robots[i].next_loc
+
+            t += 1
+            for p in paths:
+                if np.linalg.norm(intruder.present_loc-np.array(p))==0:
+                    search_state = 1
+                    break  
+            plt.show()
+            plt.pause(0.5)     
+        avg_time.append(t)
+    time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
     agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
 
 plt.ioff()
