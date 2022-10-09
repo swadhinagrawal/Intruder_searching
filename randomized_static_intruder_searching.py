@@ -241,7 +241,6 @@ fig,ax = plt.subplots()
 fig1,ax1 = plt.subplots()
 faulthandler.enable()
 for num_robots in range(1,25,1):
-    
     avg_time = []
     for runs in range(10):
         t = 0   #   Initialize time
