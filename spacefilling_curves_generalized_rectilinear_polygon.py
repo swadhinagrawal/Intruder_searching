@@ -1,8 +1,9 @@
+from operator import index
 from tkinter.messagebox import NO
 from turtle import color
 import numpy as np
 import matplotlib.pyplot as plt
-
+import copy as cp
 
 
 class Grid:
@@ -430,7 +431,119 @@ def region_generator(length,breadth):
 def Inflate_Cut_algorithm(num_vertices):
     '''Input: Num_vertices (Must be even and >=4)'''
 
-    def Cut(p):
+    def polygon_boundary(cells):
+        def edge_adder(cell,side,one_vertex = 1):
+            if side == 't':
+                if one_vertex:
+                    return [list(cell.tl)]
+                else:
+                    return [list(cell.tr),list(cell.tl)]
+            elif side == 'b':
+                if one_vertex:
+                    return [list(cell.br)]
+                else:
+                    return [list(cell.bl),list(cell.br)]
+            elif side == 'r':
+                if one_vertex:
+                    return [list(cell.tr)]
+                else:
+                    return [list(cell.br),list(cell.tr)]
+            elif side == 'l':
+                if one_vertex:
+                    return [list(cell.bl)]
+                else:
+                    return [list(cell.tl),list(cell.bl)]
+
+        grids = cp.copy(cells)
+        delete_these = []
+        for i in range(len(grids)-1,-1,-1):
+            i = str(i)
+            marker = [0,0,0,0]  # l,r,t,b
+            if grids[i].l_nei is not None:
+                marker[0] = 1
+            if grids[i].r_nei is not None:
+                marker[1] = 1
+            if grids[i].t_nei is not None:
+                marker[2] = 1
+            if grids[i].b_nei is not None:
+                marker[3] = 1
+            if np.sum(marker) == 4:
+                if grids[grids[i].t_nei].l_nei is not None and grids[grids[i].t_nei].r_nei is not None and grids[grids[i].b_nei].l_nei is not None and grids[grids[i].b_nei].r_nei is not None:
+                    delete_these.append(i)
+        for i in delete_these:
+            del grids[i]
+        
+        com = np.zeros(2)
+        for i in grids:
+            if grids[i].l_nei not in grids:
+                grids[i].l_nei = None
+            if grids[i].r_nei not in grids:
+                grids[i].r_nei = None
+            if grids[i].t_nei not in grids:
+                grids[i].t_nei = None
+            if grids[i].b_nei not in grids:
+                grids[i].b_nei = None
+            com += grids[i].centroid
+        com = com/len(grids)
+        boundary = []
+        starting_g = None
+        for g in grids:
+            if len(boundary) == 0:
+                boundary = boundary + [grids[g].tl,grids[g].bl,grids[g].br]
+                starting_g = g
+                break
+                # if grids[g].l_nei != None and grids[g].r_nei != None:
+                #     if grids[g].bl[1] < com[1]:
+                #         boundary = boundary + edge_adder(grids[g],'b',one_vertex = 0)
+                #     else:
+                #         boundary = boundary + edge_adder(grids[g],'t',one_vertex = 0)
+                # if grids[g].t_nei != None and grids[g].b_nei != None:
+                #     if grids[g].br[1] < com[0]:
+                #         boundary = boundary + edge_adder(grids[g],'l',one_vertex = 0)
+                #     else:
+                #         boundary = boundary + edge_adder(grids[g],'r',one_vertex = 0)
+        fig,ax = plt.subplots()
+        for g in grids:
+            x = grids[g].get_x()
+            y = grids[g].get_y()
+            ax.plot(x,y)
+            plt.show()
+        g = starting_g
+        next_side = 'b'
+        done = []
+        while True:
+            x = grids[g].get_x()
+            y = grids[g].get_y()
+            ax.plot(x,y,color='black')
+            plt.show()
+            boundary = boundary + edge_adder(grids[g],next_side)
+            done.append(g)
+            if grids[g].l_nei != None and grids[g].l_nei not in done:
+                g = grids[g].l_nei
+                next_side = 't'
+            elif grids[g].r_nei != None and grids[g].r_nei not in done:
+                g = grids[g].r_nei
+                next_side = 'b'
+            elif grids[g].t_nei != None and grids[g].t_nei not in done:
+                g = grids[g].t_nei
+                next_side = 'r'
+            elif grids[g].b_nei != None and grids[g].b_nei not in done:
+                g = grids[g].b_nei
+                next_side = 'l'
+            if len(done) == 3:
+                del done[0]
+            if g == starting_g:
+                break
+        boundary = np.array(boundary)
+        
+        ax.clear()
+        ax.plot(boundary[:,0],boundary[:,1],color = 'black')
+        plt.show()
+        return boundary
+
+    def Cut(p,c,ax):
+        C_tr = p[str(c)].tr + np.array([10,10])
+
         p_tilde = None
         Cut_success = True
         return p_tilde, Cut_success
@@ -696,20 +809,19 @@ def Inflate_Cut_algorithm(num_vertices):
     P['2'].b_nei = '1'
     plt.ion()
     fig,ax = plt.subplots()
+    counter = 0
     while r>0:
         cut_success = False
-        while not cut_success:
-            random_c = np.random.randint(0,len(P))
-            
-            P_tilde = Inflate(P,random_c,ax)
-            # ax.clear()
-
-            # for p in P_tilde:
-            #     ax.plot(list(p[:,0])+[p[0,0]],list(p[:,1])+[p[0,1]],color='red')
-            #     plt.show()
-            #     plt.pause(0.5)
-            # P_tilde, cut_success = Cut(P_tilde)
-            P = P_tilde
+        
+        # while not cut_success:
+        p_trial = cp.copy(P)
+        random_c = np.random.randint(0,len(p_trial))
+        p_trial = Inflate(p_trial,random_c,ax)
+        if counter == 5:
+            polygon_boundary(p_trial)
+            # p_trial, cut_success = Cut(p_trial)
+        P.update(p_trial)
+        counter += 1
         r -= 1
 Inflate_Cut_algorithm(20)
 # U and Z method
