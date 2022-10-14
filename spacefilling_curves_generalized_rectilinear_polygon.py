@@ -1,8 +1,3 @@
-from operator import index, ne
-from os import ctermid
-from re import L
-from tkinter.messagebox import NO
-from turtle import color
 import numpy as np
 import matplotlib.pyplot as plt
 import copy as cp
