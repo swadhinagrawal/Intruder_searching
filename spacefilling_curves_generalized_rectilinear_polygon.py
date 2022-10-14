@@ -1,10 +1,27 @@
-from operator import index
+from operator import index, ne
+from os import ctermid
+from re import L
 from tkinter.messagebox import NO
 from turtle import color
 import numpy as np
 import matplotlib.pyplot as plt
 import copy as cp
 
+class Node:
+    def __init__(self,l,r):
+        self.l_nei = None
+        self.r_nei = None
+
+        self.l = l
+        self.r = r
+    
+    def get_loop(self,edges):
+        boundary = np.array([self.r])
+        if self.r_nei != None:
+            boundary = np.concatenate((boundary, edges[self.r_nei].get_loop(edges)),axis=0)
+        else:
+            return boundary
+        return boundary
 
 class Grid:
     def __init__(self,tl,bl,tr,br):
@@ -12,11 +29,12 @@ class Grid:
         self.t_nei = None
         self.r_nei = None
         self.b_nei = None
-        self.ne_nei = None
+
         self.tl = tl
         self.bl = bl
         self.tr = tr
         self.br = br
+        
         self.centroid = (self.tl+self.bl+self.tr+self.br)/4.0
     
     def get_centroid(self):
@@ -31,9 +49,9 @@ class Grid:
     def get_corners(self):
         return np.array([self.bl,self.br,self.tr,self.tl])
 
-class Node:
-    def __init__(self,id,arena_w,arena_h):
-        self.node_id = np.array([int(id/arena_w),id%arena_w])
+# class Node:
+#     def __init__(self,id,arena_w,arena_h):
+#         self.node_id = np.array([int(id/arena_w),id%arena_w])
 
 def adjacency_mat(grids):
     inner_mat = np.zeros((grids.shape[1],grids.shape[1]))
@@ -429,10 +447,13 @@ def region_generator(length,breadth):
 # region_generator(500,600)
 
 def Inflate_Cut_algorithm(num_vertices):
-    '''Input: Num_vertices (Must be even and >=4)'''
+    '''
+    Input: Num_vertices (Must be even and >=4)
+    Returns: Array of vertices forming the random simple rectilinear region
+    '''
 
-    def polygon_boundary(cells):
-        def edge_adder(cell,side,one_vertex = 1):
+    def polygon_boundary(cells,ax):
+        def get_edge(cell,side,one_vertex = 1):
             if side == 't':
                 if one_vertex:
                     return [list(cell.tl)]
@@ -455,9 +476,15 @@ def Inflate_Cut_algorithm(num_vertices):
                     return [list(cell.tl),list(cell.bl)]
 
         grids = cp.copy(cells)
+        if len(grids) == 1:
+            boundary = None
+            for g in grids:
+                boundary = grids[g].get_corners()
+            boundary = np.insert(boundary,len(boundary),boundary[0],axis=0)
+            return boundary
         delete_these = []
-        for i in range(len(grids)-1,-1,-1):
-            i = str(i)
+
+        for i in grids:
             marker = [0,0,0,0]  # l,r,t,b
             if grids[i].l_nei is not None:
                 marker[0] = 1
@@ -473,103 +500,566 @@ def Inflate_Cut_algorithm(num_vertices):
         for i in delete_these:
             del grids[i]
         
-        com = np.zeros(2)
-        for i in grids:
-            if grids[i].l_nei not in grids:
-                grids[i].l_nei = None
-            if grids[i].r_nei not in grids:
-                grids[i].r_nei = None
-            if grids[i].t_nei not in grids:
-                grids[i].t_nei = None
-            if grids[i].b_nei not in grids:
-                grids[i].b_nei = None
-            com += grids[i].centroid
-        com = com/len(grids)
+        # for g in grids:
+        #     x = grids[g].get_x()
+        #     y = grids[g].get_y()
+        #     ax.plot(x,y,color='maroon')
+        #     plt.show()
+
         boundary = []
-        starting_g = None
-        for g in grids:
-            if len(boundary) == 0:
-                boundary = boundary + [grids[g].tl,grids[g].bl,grids[g].br]
-                starting_g = g
-                break
-                # if grids[g].l_nei != None and grids[g].r_nei != None:
-                #     if grids[g].bl[1] < com[1]:
-                #         boundary = boundary + edge_adder(grids[g],'b',one_vertex = 0)
-                #     else:
-                #         boundary = boundary + edge_adder(grids[g],'t',one_vertex = 0)
-                # if grids[g].t_nei != None and grids[g].b_nei != None:
-                #     if grids[g].br[1] < com[0]:
-                #         boundary = boundary + edge_adder(grids[g],'l',one_vertex = 0)
-                #     else:
-                #         boundary = boundary + edge_adder(grids[g],'r',one_vertex = 0)
-        fig,ax = plt.subplots()
-        for g in grids:
-            x = grids[g].get_x()
-            y = grids[g].get_y()
-            ax.plot(x,y)
-            plt.show()
-        g = starting_g
-        next_side = 'b'
+        edges = {}
+        g = list(grids.items())[0][0]
         done = []
+        start_edge = None
+        end_edge = None
         while True:
-            x = grids[g].get_x()
-            y = grids[g].get_y()
-            ax.plot(x,y,color='black')
-            plt.show()
-            boundary = boundary + edge_adder(grids[g],next_side)
+            # x = grids[g].get_x()
+            # y = grids[g].get_y()
+            # ax.plot(x,y,color='black')
+            # plt.show()
+
+            marker = [0,0,0,0]  # ['r','t','l','b']
+            if grids[g].l_nei is not None:
+                marker[2] = 1
+            if grids[g].r_nei is not None:
+                marker[0] = 1
+            if grids[g].t_nei is not None:
+                marker[1] = 1
+            if grids[g].b_nei is not None:
+                marker[3] = 1
+            sides = ['r','t','l','b']
+
+            if len(boundary)==0 or (g != list(grids.items())[0][0] and g not in done):
+                backup = []
+                for s in range(4):
+                    if marker[s]==0:
+                        edge = get_edge(grids[g],sides[s],one_vertex=0)
+                        if len(edges) == 0:
+                            start_edge = str(len(edges))
+                            end_edge = str(len(edges))
+                            edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                        else:
+                            for e in [start_edge,end_edge]:
+                                ll = np.linalg.norm(np.array(edge[0])-edges[e].l)
+                                lr = np.linalg.norm(np.array(edge[0])-edges[e].r)
+                                rl = np.linalg.norm(np.array(edge[1])-edges[e].l)
+                                rr = np.linalg.norm(np.array(edge[1])-edges[e].r)
+                                if ll == 0:
+                                    start_edge = str(len(edges))
+                                    edges[e].l_nei = str(len(edges))
+                                    edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                    edges[str(len(edges)-1)].r_nei = e
+                                    break
+                                elif lr == 0:
+                                    end_edge = str(len(edges))
+                                    edges[e].r_nei = str(len(edges))
+                                    edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                    edges[str(len(edges)-1)].l_nei = e
+                                    break
+                                elif rl == 0:
+                                    start_edge = str(len(edges))
+                                    edges[e].l_nei = str(len(edges))
+                                    edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                    edges[str(len(edges)-1)].r_nei = e
+                                    break
+                                elif rr == 0:
+                                    end_edge = str(len(edges))
+                                    edges[e].r_nei = str(len(edges))
+                                    edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                    edges[str(len(edges)-1)].l_nei = e
+                                    break
+                                elif e == end_edge and ll!=0 and rl!=0 and lr!=0 and rr!=0:
+                                    backup.append(edge)
+                                    break
+                if len(backup)!=0:
+                    for i in range(len(backup)-1,-1,-1):
+                        edge = backup[i]
+                        for e in [start_edge,end_edge]:
+                            ll = np.linalg.norm(np.array(edge[0])-edges[e].l)
+                            lr = np.linalg.norm(np.array(edge[0])-edges[e].r)
+                            rl = np.linalg.norm(np.array(edge[1])-edges[e].l)
+                            rr = np.linalg.norm(np.array(edge[1])-edges[e].r)
+                            if ll == 0:
+                                start_edge = str(len(edges))
+                                edges[e].l_nei = str(len(edges))
+                                edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                edges[str(len(edges)-1)].r_nei = e
+                                break
+                            elif lr == 0:
+                                end_edge = str(len(edges))
+                                edges[e].r_nei = str(len(edges))
+                                edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                edges[str(len(edges)-1)].l_nei = e
+                                break
+                            elif rl == 0:
+                                start_edge = str(len(edges))
+                                edges[e].l_nei = str(len(edges))
+                                edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                edges[str(len(edges)-1)].r_nei = e
+                                break
+                            elif rr == 0:
+                                end_edge = str(len(edges))
+                                edges[e].r_nei = str(len(edges))
+                                edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                edges[str(len(edges)-1)].l_nei = e
+                                break
+
+                boundary = edges[start_edge].get_loop(edges)
+
+                # ax.plot(np.array(boundary)[:,0],np.array(boundary)[:,1],color='blue')
+                # plt.show()
+
             done.append(g)
-            if grids[g].l_nei != None and grids[g].l_nei not in done:
-                g = grids[g].l_nei
-                next_side = 't'
+
+
+            sequence = [-1,-1,-1,-1]
+            values = [grids[g].r_nei,grids[g].t_nei,grids[g].l_nei,grids[g].b_nei]
+            if grids[g].r_nei != None and grids[g].r_nei in done:
+                sequence[0] = done.index(grids[g].r_nei)
             elif grids[g].r_nei != None and grids[g].r_nei not in done:
-                g = grids[g].r_nei
-                next_side = 'b'
+                pass
+            else:
+                sequence[0] = np.Inf
+            
+            if grids[g].t_nei != None and grids[g].t_nei in done:
+                sequence[1] = done.index(grids[g].t_nei)
             elif grids[g].t_nei != None and grids[g].t_nei not in done:
-                g = grids[g].t_nei
-                next_side = 'r'
+                pass
+            else:
+                sequence[1] = np.Inf
+
+            if grids[g].l_nei != None and grids[g].l_nei in done:
+                sequence[2] = done.index(grids[g].l_nei)
+            elif grids[g].l_nei != None and grids[g].l_nei not in done:
+                pass
+            else:
+                sequence[2] = np.Inf
+            
+            if grids[g].b_nei != None and grids[g].b_nei in done:
+                sequence[3] = done.index(grids[g].b_nei)
             elif grids[g].b_nei != None and grids[g].b_nei not in done:
+                pass
+            else:
+                sequence[3] = np.Inf
+            g1 = values[sequence.index(min(sequence))]
+            while g1 not in grids:
+                sequence[sequence.index(min(sequence))] = np.Inf
+                g1 = values[sequence.index(min(sequence))]
+            if g1 == grids[g].r_nei:
+                g = grids[g].r_nei
+            elif g1 == grids[g].t_nei:
+                g = grids[g].t_nei
+            elif g1 == grids[g].l_nei:
+                g = grids[g].l_nei
+            elif g1 == grids[g].b_nei:
                 g = grids[g].b_nei
-                next_side = 'l'
-            if len(done) == 3:
-                del done[0]
-            if g == starting_g:
+
+            if np.linalg.norm(edges[start_edge].l-edges[str(int(end_edge))].r)==0:
                 break
-        boundary = np.array(boundary)
-        
+        boundary = np.concatenate((boundary,np.array([boundary[0]])),axis=0)
+
         ax.clear()
         ax.plot(boundary[:,0],boundary[:,1],color = 'black')
+        ax.scatter(boundary[:,0],boundary[:,1],color = 'black')
         plt.show()
         return boundary
 
     def Cut(p,c,ax):
-        C_tr = p[str(c)].tr + np.array([10,10])
+        # Add cells with cut status
+        C_tr = p[str(c)].tr #+ np.array([10,10])
+        
+        boundary = polygon_boundary(p,ax)
 
-        p_tilde = None
-        Cut_success = True
-        return p_tilde, Cut_success
+        def get_neighbour(cel,loc,s):
+            if s == 'r':
+                return cel[loc].r_nei
+            elif s == 'l':
+                return cel[loc].l_nei
+            elif s == 't':
+                return cel[loc].t_nei
+            elif s == 'b':
+                return cel[loc].b_nei
+        
+        def set_neighbour(cells,loc,s,nei):
+            if s == 'r':
+                cells[loc].r_nei = nei
+            elif s == 'l':
+                cells[loc].l_nei = nei
+            elif s == 't':
+                cells[loc].t_nei = nei
+            elif s == 'b':
+                cells[loc].b_nei = nei
+            return cells
+        
+        def get_area_vertices(array):
+            array = np.array(array)
+            done = 0
+            pts = len(array)-2
+            while not done:
+                if pts<len(array)-1:
+                    this = array[pts]
+                    pre = array[pts-1]
+                    post = array[pts+1]
+
+                    if (pre[0] == this[0] == post[0]) or (pre[1] == this[1] == post[1]):
+                        array = np.delete(array,pts,axis=0)
+                pts -= 1
+                if pts<1:
+                    done = 1
+            return array
+
+        def get_ooposite_side(s):
+            if s == 'r':
+                return 'l'
+            elif s == 'l':
+                return 'r'
+            elif s == 't':
+                return 'b'
+            elif s == 'b':
+                return 't'
+
+        region = get_area_vertices(boundary)
+        sides = ['r','l','t','b']
+    
+        cut_success = {}
+        ax.scatter(C_tr[0],C_tr[1])
+        plt.show()
+        for i in sides:
+            if i == 'r' or i == 'l':
+                both = ['t','b']
+            elif i == 't' or i == 'b':
+                both = ['r','l']
+            for j in both:
+                key = i+j
+                C_tr_grid = p[p[str(c)].r_nei].t_nei
+                if key == 'lt' or key == 'tl':
+                    C_tr_grid = p[C_tr_grid].t_nei
+                elif key == 'rt' or key == 'tr':
+                    if p[C_tr_grid].t_nei != None:
+                        C_tr_grid = p[p[C_tr_grid].t_nei].r_nei
+                    elif p[C_tr_grid].r_nei != None:
+                        C_tr_grid = p[p[C_tr_grid].r_nei].t_nei
+                    else:
+                        C_tr_grid = None
+                elif key == 'rb' or key == 'br':
+                    C_tr_grid = p[C_tr_grid].r_nei
+                else:
+                    pass
+                grid_list = []
+                if C_tr_grid!= None:
+                    # Change this loops inside condition!!!
+                    next_ = get_neighbour(p,C_tr_grid,i)
+                    grid_list.append(C_tr_grid)
+                    while next_ != None:
+                        grid_list.append(next_)
+                        next_ = get_neighbour(p,next_,i)
+                    
+                    # next_ = get_neighbour(p,grid_list[-1],j)
+                    # while next_ != None:
+                    #     grid_list.append(next_)
+                    #     next_ = get_neighbour(p,next_,j)
+                    
+                    
+                if len(grid_list)!=0:
+                    cells1 = {}
+                    for g in grid_list:
+                        cells1[str(g)] = cp.copy(p[g])
+                    cells = cp.copy(cells1)
+
+                    for ind,cc in enumerate(cells):
+                        # Change this loop!!! Add None only to boundary cells
+                        if ind == 0:
+                            if i == 'r':
+                                cells[cc].l_nei = None
+                            elif i == 'l':
+                                cells[cc].r_nei = None
+                            elif i == 't':
+                                cells[cc].b_nei = None
+                            elif i == 'b':
+                                cells[cc].t_nei = None
+                        if i =='r' or i=='l':
+                            cells[cc].t_nei = None
+                            cells[cc].b_nei = None
+                        elif i =='t' or i=='b':
+                            cells[cc].r_nei = None
+                            cells[cc].l_nei = None
+                    if key == 'lb' or key == 'bl' or key == 'lt':
+                        periphery = polygon_boundary(dict(reversed(list(cells.items()))),ax)
+                    else:
+                        periphery = polygon_boundary(cells,ax)
+                    ax.clear()
+                    ax.plot(region[:,0],region[:,1],color='orange')
+                    ax.plot(periphery[:,0],periphery[:,1],color='yellow')
+                    plt.show()
+                else:
+                    periphery = []
+                vertex_exists = False
+                s_tilda = None
+                v_m_tilda = None
+                
+                for point in periphery:
+                    # non_satisfied = np.zeros(3)
+                    if np.linalg.norm(C_tr-point)==0:
+                        pass
+                    # else:
+                    #     non_satisfied[0] = 1
+
+                    for r in range(-1,len(region)-1):
+                        vec1 = region[r] - point
+                        vec2 = region[r+1] - point
+                        vec1_norm = np.linalg.norm(vec1)
+                        vec2_norm = np.linalg.norm(vec2)
+                        if vec1_norm != 0:
+                            vec1 = vec1/vec1_norm
+                        if vec2_norm!=0:
+                            vec2 = vec2/vec2_norm
+                        theta = np.arccos(np.dot(vec1,vec2))
+                        if point[0] == C_tr[0] or point[1] == C_tr[1] and theta==np.pi:
+                            s_tilda = point
+                        # else:
+                        #     non_satisfied[1] = 1
+                    if point[0] != C_tr[0] and point[1] != C_tr[1]:
+                        v_m_tilda = point
+                    # else:
+                    #     non_satisfied[2] = 1
+                    # if np.sum(non_satisfied) == 3:
+                    #     pass
+
+                for r in region:
+                    if len(periphery)!=0 and not vertex_exists:
+                        for point in periphery:
+                            if np.linalg.norm(r-point)==0 and np.linalg.norm(r-v_m_tilda) != 0:
+                                vertex_exists = True
+                                break
+                    elif vertex_exists or len(periphery)==0:
+                        break
+                cut_success[key] = vertex_exists
+        # sides = ['r','l','t','b']
+    
+        # cut_success = {}
+        # ax.scatter(C_tr[0],C_tr[1])
+        # plt.show()
+        # for i in sides:
+        #     if i == 'r' or i == 'l':
+        #         both = ['t','b']
+        #     elif i == 't' or i == 'b':
+        #         both = ['r','l']
+        #     for j in both:
+        #         key = i+j
+        #         C_tr_grid = p[p[str(c)].r_nei].t_nei
+        #         if key == 'lt' or key == 'tl':
+        #             C_tr_grid = p[C_tr_grid].t_nei
+        #         elif key == 'rt' or key == 'tr':
+        #             if p[C_tr_grid].t_nei != None:
+        #                 C_tr_grid = p[p[C_tr_grid].t_nei].r_nei
+        #             elif p[C_tr_grid].r_nei != None:
+        #                 C_tr_grid = p[p[C_tr_grid].r_nei].t_nei
+        #             else:
+        #                 C_tr_grid = None
+        #         elif key == 'rb' or key == 'br':
+        #             C_tr_grid = p[C_tr_grid].r_nei
+        #         else:
+        #             pass
+        #         grid_list = []
+        #         if C_tr_grid!= None:
+        #             next_ = get_neighbour(p,C_tr_grid,i)
+        #             grid_list.append(C_tr_grid)
+        #             while next_ != None:
+        #                 grid_list.append(next_)
+        #                 next_ = get_neighbour(p,next_,i)
+                    
+        #         if len(grid_list)!=0:
+        #             cells1 = {}
+        #             for g in grid_list:
+        #                 cells1[str(g)] = cp.copy(p[g])
+        #             cells = cp.copy(cells1)
+        #             for ind,cc in enumerate(cells):
+        #                 if cc == C_tr_grid:
+        #                     print('here')
+        #                 if ind == 0:
+        #                     if i == 'r':
+        #                         cells[cc].l_nei = None
+        #                     elif i == 'l':
+        #                         cells[cc].r_nei = None
+        #                     elif i == 't':
+        #                         cells[cc].b_nei = None
+        #                     elif i == 'b':
+        #                         cells[cc].t_nei = None
+        #                 if i =='r' or i=='l':
+        #                     cells[cc].t_nei = None
+        #                     cells[cc].b_nei = None
+        #                 elif i =='t' or i=='b':
+        #                     cells[cc].r_nei = None
+        #                     cells[cc].l_nei = None
+        #             if key == 'lb' or key == 'bl' or key == 'lt':
+        #                 periphery = polygon_boundary(dict(reversed(list(cells.items()))),ax)
+        #             else:
+        #                 periphery = polygon_boundary(cells,ax)
+        #             ax.clear()
+        #             ax.plot(region[:,0],region[:,1],color='orange')
+        #             ax.plot(periphery[:,0],periphery[:,1],color='yellow')
+        #             plt.show()
+        #         else:
+        #             periphery = []
+        #         vertex_exists = False
+        #         s_tilda = None
+        #         v_m_tilda = None
+                
+        #         for point in periphery:
+        #             # non_satisfied = np.zeros(3)
+        #             if np.linalg.norm(C_tr-point)==0:
+        #                 pass
+        #             # else:
+        #             #     non_satisfied[0] = 1
+
+        #             for r in range(-1,len(region)-1):
+        #                 vec1 = region[r] - point
+        #                 vec2 = region[r+1] - point
+        #                 vec1_norm = np.linalg.norm(vec1)
+        #                 vec2_norm = np.linalg.norm(vec2)
+        #                 if vec1_norm != 0:
+        #                     vec1 = vec1/vec1_norm
+        #                 if vec2_norm!=0:
+        #                     vec2 = vec2/vec2_norm
+        #                 theta = np.arccos(np.dot(vec1,vec2))
+        #                 if point[0] == C_tr[0] or point[1] == C_tr[1] and theta==np.pi:
+        #                     s_tilda = point
+        #                 # else:
+        #                 #     non_satisfied[1] = 1
+        #             if point[0] != C_tr[0] and point[1] != C_tr[1]:
+        #                 v_m_tilda = point
+        #             # else:
+        #             #     non_satisfied[2] = 1
+        #             # if np.sum(non_satisfied) == 3:
+        #             #     pass
+
+        #         for r in region:
+        #             if len(periphery)!=0 and not vertex_exists:
+        #                 for point in periphery:
+        #                     if np.linalg.norm(r-point)==0 and np.linalg.norm(r-v_m_tilda) != 0:
+        #                         vertex_exists = True
+        #                         break
+        #             elif vertex_exists or len(periphery)==0:
+        #                 break
+        #         cut_success[key] = vertex_exists
+
+        # Do the cutting correctly!!!!
+        random_ = np.random.randint(0,len(cut_success))
+        cutting = False
+        cutting_loc = None
+        while len(cut_success) != 0 and cutting != True:
+            checker = False
+            for i,k in enumerate(cut_success):
+                if i == random_ and cut_success[k] == False:
+                    cutting = True
+                    cutting_loc = k
+                    break
+                elif i == random_ and cut_success[k] == True:
+                    checker = True
+                    break
+            if checker:
+                del cut_success[k]
+        
+        if cutting_loc is not None:
+            if cutting_loc == 'rt':
+                start_cell = p[p[str(c)].r_nei].t_nei
+                if p[start_cell].t_nei != None:
+                    if p[p[start_cell].t_nei].r_nei != None:
+                        start_cell = p[p[start_cell].t_nei].r_nei
+                side = 'r'
+            elif cutting_loc == 'rb':
+                start_cell = p[p[str(c)].r_nei].t_nei
+                if p[p[p[str(c)].r_nei].t_nei].r_nei != None:
+                    start_cell = p[p[p[str(c)].r_nei].t_nei].r_nei
+                side = 'r'
+            elif cutting_loc == 'lt':
+                start_cell = p[p[str(c)].r_nei].t_nei
+                if p[start_cell].t_nei != None:
+                    start_cell = p[p[p[str(c)].r_nei].t_nei].t_nei
+                side = 'l'
+            elif cutting_loc == 'lb':
+                start_cell = p[p[str(c)].r_nei].t_nei
+                side = 'l'
+            elif cutting_loc == 'tl':
+                start_cell = p[p[str(c)].r_nei].t_nei
+                if p[start_cell].t_nei != None:
+                    start_cell = p[p[p[str(c)].r_nei].t_nei].t_nei
+                side = 't'
+            elif cutting_loc == 'tr':
+                start_cell = p[p[str(c)].r_nei].t_nei
+                if p[start_cell].t_nei != None:
+                    if p[p[start_cell].t_nei].r_nei != None:
+                        start_cell = p[p[start_cell].t_nei].r_nei
+                side = 't'
+            elif cutting_loc == 'bl':
+                start_cell = p[p[str(c)].r_nei].t_nei
+                side = 'b'
+            elif cutting_loc == 'br':
+                start_cell = p[p[str(c)].r_nei].t_nei
+                if p[start_cell].r_nei != None:
+                    start_cell = p[start_cell].r_nei
+                side = 'b'
+
+            next_ = get_neighbour(p,start_cell,side)
+            last_alive = p[start_cell].l_nei
+            p = set_neighbour(p,last_alive,side,next_)
+            for s in sides:
+                if s != side:
+                    here = get_neighbour(p,start_cell,s)
+                    setting = None
+                    if s == 'r':
+                        setting = 'l'
+                    elif s == 'l':
+                        setting = 'r'
+                    elif s == 't':
+                        setting = 'b'
+                    elif s == 'b':
+                        setting = 't'
+                    p = set_neighbour(p,here,setting,None)
+            del p[start_cell]
+            while get_neighbour(p,last_alive,side)!= None:
+                next_new = get_neighbour(p,next_,side)
+                p = set_neighbour(p,last_alive,side,next_new)
+                for s in sides:
+                    if s != side:
+                        here = get_neighbour(p,next_,s)
+                        setting = None
+                        if s == 'r':
+                            setting = 'l'
+                        elif s == 'l':
+                            setting = 'r'
+                        elif s == 't':
+                            setting = 'b'
+                        elif s == 'b':
+                            setting = 't'
+                        p = set_neighbour(p,here,setting,None)
+                del p[next_]
+                next_ = next_new
+
+        return p,cutting
 
     def Inflate(p,c,ax):
         C_tr = p[str(c)].tr
         
-        ax.clear()            
-        for pp in p:
-            x = p[pp].get_x()
-            y = p[pp].get_y()
-            ax.plot(x,y,color='red')
-            plt.show()
-        x = p[str(c)].get_x()
-        y = p[str(c)].get_y()
-        ax.plot(x,y,color='green')
-        plt.show()
+        # ax.clear()            
+        # for pp in p:
+        #     x = p[pp].get_x()
+        #     y = p[pp].get_y()
+        #     ax.plot(x,y,color='red')
+        #     plt.show()
+        # x = p[str(c)].get_x()
+        # y = p[str(c)].get_y()
+        # ax.plot(x,y,color='green')
+        # plt.show()
 
         new_cells = {}
 
         for grid in range(len(p)):
             #   Quadrant marking
-            x = p[str(grid)].get_x()
-            y = p[str(grid)].get_y()
-            ax.plot(x,y,color='black')
-            plt.show()
+            # x = p[str(grid)].get_x()
+            # y = p[str(grid)].get_y()
+            # ax.plot(x,y,color='black')
+            # plt.show()
             marker = np.zeros((4,4))
             grid_corners = p[str(grid)].get_corners()
             for vertex in range(len(grid_corners)):
@@ -598,7 +1088,6 @@ def Inflate_Cut_algorithm(num_vertices):
                     grid_corners[vertex,0] += 10
             
             if np.sum(marker[:,2]) >= 1:
-                # elif np.sum(marker[:,2]) == 4:
                 # NE
                 for vertex in range(len(grid_corners)):
                     grid_corners[vertex] = grid_corners[vertex] + np.array([10,10])
@@ -608,7 +1097,6 @@ def Inflate_Cut_algorithm(num_vertices):
                 for vertex in range(len(grid_corners)):
                     grid_corners[vertex,0] += 10
 
-                #   Left are unlinked
                 t = Grid(bl = grid_corners[3], br = grid_corners[2], tl = grid_corners[3] + np.array([0,10]), tr = grid_corners[2] + np.array([0,10]))
                 t.b_nei = str(grid)
                 if p[str(grid)].t_nei is not None:
@@ -617,10 +1105,10 @@ def Inflate_Cut_algorithm(num_vertices):
                 p[str(grid)].t_nei = str(len(p))
                 new_cells[str(len(p))] = t
                 p.update(new_cells)
-                x = t.get_x()
-                y = t.get_y()
-                ax.plot(x,y,color='blue')
-                plt.show()
+                # x = t.get_x()
+                # y = t.get_y()
+                # ax.plot(x,y,color='blue')
+                # plt.show()
 
 
             if grid_corners[2,1] == C_tr[1] and grid_corners[3,1] == C_tr[1] and grid_corners[0,0] < C_tr[0]:
@@ -635,10 +1123,10 @@ def Inflate_Cut_algorithm(num_vertices):
                 p[str(grid)].t_nei = str(len(p))
                 new_cells[str(len(p))] = a
                 p.update(new_cells)
-                x = a.get_x()
-                y = a.get_y()
-                ax.plot(x,y,color='blue')
-                plt.show()
+                # x = a.get_x()
+                # y = a.get_y()
+                # ax.plot(x,y,color='blue')
+                # plt.show()
 
             if grid_corners[1,0] == C_tr[0] and grid_corners[2,0] == C_tr[0] and grid_corners[3,1] <= C_tr[1]:
                 #   -y left all
@@ -652,10 +1140,10 @@ def Inflate_Cut_algorithm(num_vertices):
                 p[str(grid)].r_nei = str(len(p))
                 new_cells[str(len(p))] = a
                 p.update(new_cells)
-                x = a.get_x()
-                y = a.get_y()
-                ax.plot(x,y,color='blue')
-                plt.show()
+                # x = a.get_x()
+                # y = a.get_y()
+                # ax.plot(x,y,color='blue')
+                # plt.show()
 
                 if grid_corners[3,1] == C_tr[1]:
                     a = Grid(bl = grid_corners[2], br = grid_corners[2] + np.array([10,0]), tl = grid_corners[2] + np.array([0,10]), tr = grid_corners[2] + np.array([10,10]))
@@ -667,10 +1155,10 @@ def Inflate_Cut_algorithm(num_vertices):
                     
                     new_cells[str(len(p))] = a
                     p.update(new_cells)
-                    x = a.get_x()
-                    y = a.get_y()
-                    ax.plot(x,y,color='blue')
-                    plt.show()
+                    # x = a.get_x()
+                    # y = a.get_y()
+                    # ax.plot(x,y,color='blue')
+                    # plt.show()
 
             if grid_corners[0,0] == C_tr[0] and grid_corners[3,0] == C_tr[0] and grid_corners[3,1] < C_tr[1]:
                 #   -y right except first
@@ -696,10 +1184,10 @@ def Inflate_Cut_algorithm(num_vertices):
                 p[str(grid)].r_nei = str(len(p))
                 new_cells[str(len(p))] = a
                 p.update(new_cells)
-                x = a.get_x()
-                y = a.get_y()
-                ax.plot(x,y,color='blue')
-                plt.show()
+                # x = a.get_x()
+                # y = a.get_y()
+                # ax.plot(x,y,color='blue')
+                # plt.show()
             
             p[str(grid)].bl = grid_corners[0]
             p[str(grid)].br = grid_corners[1]
@@ -707,44 +1195,44 @@ def Inflate_Cut_algorithm(num_vertices):
             p[str(grid)].tl = grid_corners[3]
             p[str(grid)].get_centroid()
 
-            ax.clear()            
-            for pp in p:
-                x = p[pp].get_x()
-                y = p[pp].get_y()
-                ax.plot(x,y,color='red')
-                plt.show()
-            x = p[str(c)].get_x()
-            y = p[str(c)].get_y()
-            ax.plot(x,y,color='green')
-            plt.show()
-            for pp in new_cells:
-                x = new_cells[pp].get_x()
-                y = new_cells[pp].get_y()
-                ax.plot(x,y,color='blue')
-                plt.show()
+            # ax.clear()            
+            # for pp in p:
+            #     x = p[pp].get_x()
+            #     y = p[pp].get_y()
+            #     ax.plot(x,y,color='red')
+            #     plt.show()
+            # x = p[str(c)].get_x()
+            # y = p[str(c)].get_y()
+            # ax.plot(x,y,color='green')
+            # plt.show()
+            # for pp in new_cells:
+            #     x = new_cells[pp].get_x()
+            #     y = new_cells[pp].get_y()
+            #     ax.plot(x,y,color='blue')
+            #     plt.show()
         
         p.update(new_cells)
-        ax.clear()            
-        for pp in p:
-            x = p[pp].get_x()
-            y = p[pp].get_y()
-            ax.plot(x,y,color='red')
-            plt.show()
-        x = p[str(c)].get_x()
-        y = p[str(c)].get_y()
-        ax.plot(x,y,color='green')
-        plt.show()
-        for pp in new_cells:
-            x = new_cells[pp].get_x()
-            y = new_cells[pp].get_y()
-            ax.plot(x,y,color='blue')
-            plt.show()
+        # ax.clear()            
+        # for pp in p:
+        #     x = p[pp].get_x()
+        #     y = p[pp].get_y()
+        #     ax.plot(x,y,color='red')
+        #     plt.show()
+        # x = p[str(c)].get_x()
+        # y = p[str(c)].get_y()
+        # ax.plot(x,y,color='green')
+        # plt.show()
+        # for pp in new_cells:
+        #     x = new_cells[pp].get_x()
+        #     y = new_cells[pp].get_y()
+        #     ax.plot(x,y,color='blue')
+        #     plt.show()
 
         for _,grid in enumerate(new_cells):
-            x = p[grid].get_x()
-            y = p[grid].get_y()
-            ax.plot(x,y,color='pink')
-            plt.show()
+            # x = p[grid].get_x()
+            # y = p[grid].get_y()
+            # ax.plot(x,y,color='pink')
+            # plt.show()
             if p[grid].l_nei is None:
                 if p[grid].b_nei is not None:
                     if p[p[grid].b_nei].l_nei is not None:  
@@ -789,16 +1277,15 @@ def Inflate_Cut_algorithm(num_vertices):
                 elif p[grid].l_nei is not None:
                     if p[p[grid].l_nei].b_nei is not None:
                         p[grid].b_nei = p[p[p[grid].l_nei].b_nei].r_nei
-            if p[grid].t_nei is not None:
-                ax.plot([p[grid].centroid[0],p[p[grid].t_nei].centroid[0]],[p[grid].centroid[1],p[p[grid].t_nei].centroid[1]])
-            if p[grid].b_nei is not None:
-                ax.plot([p[grid].centroid[0],p[p[grid].b_nei].centroid[0]],[p[grid].centroid[1],p[p[grid].b_nei].centroid[1]])
-            if p[grid].l_nei is not None:
-                ax.plot([p[grid].centroid[0],p[p[grid].l_nei].centroid[0]],[p[grid].centroid[1],p[p[grid].l_nei].centroid[1]])
-            if p[grid].r_nei is not None:
-                ax.plot([p[grid].centroid[0],p[p[grid].r_nei].centroid[0]],[p[grid].centroid[1],p[p[grid].r_nei].centroid[1]])
-            plt.show()
-
+            # if p[grid].t_nei is not None:
+            #     ax.plot([p[grid].centroid[0],p[p[grid].t_nei].centroid[0]],[p[grid].centroid[1],p[p[grid].t_nei].centroid[1]])
+            # if p[grid].b_nei is not None:
+            #     ax.plot([p[grid].centroid[0],p[p[grid].b_nei].centroid[0]],[p[grid].centroid[1],p[p[grid].b_nei].centroid[1]])
+            # if p[grid].l_nei is not None:
+            #     ax.plot([p[grid].centroid[0],p[p[grid].l_nei].centroid[0]],[p[grid].centroid[1],p[p[grid].l_nei].centroid[1]])
+            # if p[grid].r_nei is not None:
+            #     ax.plot([p[grid].centroid[0],p[p[grid].r_nei].centroid[0]],[p[grid].centroid[1],p[p[grid].r_nei].centroid[1]])
+            # plt.show()
         return p
 
     r = num_vertices/2 - 2
@@ -809,20 +1296,19 @@ def Inflate_Cut_algorithm(num_vertices):
     P['2'].b_nei = '1'
     plt.ion()
     fig,ax = plt.subplots()
-    counter = 0
+    fig1,ax1 = plt.subplots()
     while r>0:
         cut_success = False
-        
-        # while not cut_success:
-        p_trial = cp.copy(P)
-        random_c = np.random.randint(0,len(p_trial))
-        p_trial = Inflate(p_trial,random_c,ax)
-        if counter == 5:
-            polygon_boundary(p_trial)
-            # p_trial, cut_success = Cut(p_trial)
+        polygon_boundary(P,ax)
+        while not cut_success:
+            p_trial = cp.copy(P)
+            random_c = np.random.randint(0,len(p_trial))
+            p_trial = Inflate(p_trial,random_c,ax)
+            p_trial, cut_success = Cut(p_trial,random_c,ax1)
         P.update(p_trial)
-        counter += 1
+        polygon_boundary(P,ax1)
         r -= 1
+
 Inflate_Cut_algorithm(20)
 # U and Z method
 class Decomposition2:
