@@ -1,9 +1,11 @@
-from turtle import color
+#   Authors: Aayush Gohil, Swadhin Agrawal
+
+from array import array
 import numpy as np
 import matplotlib.pyplot as plt
 import copy as cp
-# np.randomz.seed(12)
-
+import random
+# Random simple rectilinear polygon generator
 class Node:
     def __init__(self,l,r):
         self.l_nei = None
@@ -45,403 +47,6 @@ class Grid:
 
     def get_corners(self):
         return np.array([self.bl,self.br,self.tr,self.tl])
-
-# class Node:
-#     def __init__(self,id,arena_w,arena_h):
-#         self.node_id = np.array([int(id/arena_w),id%arena_w])
-
-def adjacency_mat(grids):
-    inner_mat = np.zeros((grids.shape[1],grids.shape[1]))
-    outter_mat = np.zeros((grids.shape[0]*grids.shape[1],grids.shape[0]*grids.shape[1]))
-
-    for i in range(grids.shape[1]):
-        if i+1<grids.shape[1]:
-            inner_mat[i,i+1] = 1
-        if i-1>=0:
-            inner_mat[i,i-1] = 1
-    
-    for i in range(outter_mat.shape[1]):
-        if i+grids.shape[1]<outter_mat.shape[1]:
-            outter_mat[i,i+grids.shape[1]] = 1
-        if i-grids.shape[1]>=0:
-            outter_mat[i,i-grids.shape[1]] = 1
-    
-    vertices = np.kron(np.eye(grids.shape[0]),inner_mat) + outter_mat
-    return vertices
-
-def get_plot(array,type_):
-    if type_ == graph:
-        x = np.empty(0)
-        y = np.empty(0)
-        for i in range(len(array)):
-            x,y = np.append(x,array[i][0]),np.append(y,array[i][1])
-            plt.plot(x,y)
-            
-    elif type_ == edge:
-        count = 0
-        x = np.empty(0)
-        y = np.empty(0)
-        for elem in array:
-            x,y = np.append(x,elem[0]),np.append(y,elem[1])
-            count+=1
-            if count == 2:
-                plt.plot(x,y)
-                x = np.empty(0)
-                y = np.empty(0)
-                count = 0
-
-def plot_show():
-    plt.figure(figsize = (5,5))
-    plt.show()
-
-def get_coordinates(vertices,boundry_check,action,lim_x,lim_y,edge_length):
-
-    cur_x = vertices[-1][0]
-    cur_y = vertices[-1][1]
-
-    boundry = np.array([0,0,0,0])
-
-    if(cur_x == lim_x):
-        boundry[right] = 1
-        boundry_check[right] = 1
-    if(cur_x == 0):
-        boundry[left] = 1
-        boundry_check[left] = 1
-    if(cur_y == lim_y):
-        boundry[up] = 1
-        boundry_check[up] = 1
-    if(cur_y == 0):
-        boundry[down] = 1
-        boundry_check[down] = 1
-
-    arr =  (boundry_check == 1)
-    boundry_condition = True
-
-    for value in arr:
-        if value == False:
-            boundry_condition = False
-
-    if action == up:
-        next_x = cur_x 
-        next_y = cur_y+1
-        collision = False
-        for i in range(len(vertices)-1):
-            if vertices[i+1][0] == next_x and vertices[i+1][1] == next_y:
-                collision=True
-
-        if(boundry[up] == True):
-            return False,edge_length,vertices
-
-        elif(next_x == vertices[0][0] and next_y == vertices[0][1] and edge_length >= 10 ):
-
-            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
-            edge_length+=1
-
-            return True,edge_length,vertices
-
-        elif collision:
-            return False,edge_length,vertices
-
-        else:
-            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
-            updated_edge_len = edge_length+1
-
-            trial = 0
-            flag = True
-            actions = [0,1,2,3]
-            while flag:
-                trial +=1
-                actions = [0,1,2,3]
-                choose_action = sample(actions,1)
-                actions = list(np.delete(actions, np.where(np.array(actions) == choose_action[0])))
-                fact_vect_temp,edge_len_temp,temp_vertices = get_coordinates(vertices,boundry_check, choose_action[0], lim_x,lim_y,updated_edge_len)
-
-                if fact_vect_temp == True:
-                    indexes = np.unique(temp_vertices[1:],axis=0, return_index=True)[1]
-                    unique_vertices = [temp_vertices[1:][index] for index in sorted(indexes)]
-                    if np.array_equal(unique_vertices,temp_vertices[1:]):
-                        return True,edge_len_temp,temp_vertices
-                if trial == 4:
-                    return False,edge_length,vertices
-                else:
-                    flag = True
-
-    elif action == right:
-        next_x = cur_x+1 
-        next_y = cur_y
-
-        collision = False
-        for i in range(len(vertices)-1):
-            if vertices[i+1][0] == next_x and vertices[i+1][1] == next_y:
-                collision=True
-
-        if(boundry[right] == True):
-
-            return False,edge_length,vertices
-
-        elif(next_x == vertices[0][0] and next_y == vertices[0][1] and edge_length >= 10  ):
-
-            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
-            edge_length+=1
-
-            return True,edge_length,vertices
-
-        elif(collision):
-            return False,edge_length,vertices
-
-        else:
-            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
-            updated_edge_len = edge_length+1
-
-            trial = 0
-            flag = True
-            actions = [0,1,2,3]
-            while flag:
-                trial +=1
-                actions = [0,1,2,3]
-                choose_action = sample(actions,1)
-                actions = list(np.delete(actions, np.where(np.array(actions) == choose_action[0])))
-                fact_vect_temp,edge_len_temp,temp_vertices = get_coordinates(vertices,boundry_check, choose_action[0], lim_x,lim_y,updated_edge_len)
-
-                if fact_vect_temp == True:
-                    indexes = np.unique(temp_vertices[1:],axis=0, return_index=True)[1]
-                    unique_vertices = [temp_vertices[1:][index] for index in sorted(indexes)]
-                    if np.array_equal(unique_vertices,temp_vertices[1:]):
-                        return True,edge_len_temp,temp_vertices
-                if trial == 4:
-                    return False,edge_length,vertices
-                else:
-                    flag = True
-
-    elif action == down:
-        next_x = cur_x 
-        next_y = cur_y-1
-        collision = False
-        for i in range(len(vertices)-1):
-            if vertices[i+1][0] == next_x and vertices[i+1][1] == next_y:
-                collision=True
-
-        if(boundry[down] == True):
-            return False,edge_length,vertices
-
-        elif(next_x == vertices[0][0] and next_y == vertices[0][1] and edge_length >= 10 ):
-
-            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
-            edge_length+=1
-
-            return True,edge_length,vertices
-
-        elif(collision):
-            return False,edge_length,vertices
-
-        else:
-            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
-            updated_edge_len=edge_length+1                  
-
-            trial = 0
-            flag = True
-            actions = [0,1,2,3]
-            while flag:
-                trial +=1
-                
-                choose_action = sample(actions,1)
-                actions = list(np.delete(actions, np.where(np.array(actions) == choose_action[0])))
-                fact_vect_temp,edge_len_temp,temp_vertices = get_coordinates(vertices,boundry_check, choose_action[0], lim_x,lim_y,updated_edge_len)
-
-                if fact_vect_temp == True:
-                    indexes = np.unique(temp_vertices[1:],axis=0, return_index=True)[1]
-                    unique_vertices = [temp_vertices[1:][index] for index in sorted(indexes)]
-                    if np.array_equal(unique_vertices,temp_vertices[1:]):
-                        return True,edge_len_temp,temp_vertices
-                if trial == 4:
-                    return False,edge_length,vertices
-                else:
-                    flag = True
-
-    elif action == left:
-        next_x = cur_x-1 
-        next_y = cur_y
-        collision = False
-        for i in range(len(vertices)-1):
-            if vertices[i+1][0] == next_x and vertices[i+1][1] == next_y:
-                collision=True
-
-        if(boundry[left] == True):
-            return False,edge_length,vertices
-
-        elif(next_x == vertices[0][0] and next_y == vertices[0][1] and edge_length >= 10 ):
-
-            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
-            edge_length+=1
-
-            return True,edge_length,vertices
-
-        elif(collision):
-            return False,edge_length,vertices
-
-        else:
-            vertices_ = np.append(vertices,[[next_x,next_y]],axis=0)
-            updated_edge_len=edge_length+1                 
-
-            trial = 0
-            flag = True
-            actions = [0,1,2,3]
-            while flag:
-                trial +=1
-                
-                choose_action = sample(actions,1)
-                actions = list(np.delete(actions, np.where(np.array(actions) == choose_action[0])))
-                fact_vect_temp,edge_len_temp,temp_vertices = get_coordinates(vertices_,boundry_check, choose_action[0], lim_x,lim_y,updated_edge_len)
-
-                if fact_vect_temp == True:
-                    indexes = np.unique(temp_vertices[1:],axis=0, return_index=True)[1]
-                    unique_vertices = [temp_vertices[1:][index] for index in sorted(indexes)]
-                    if np.array_equal(unique_vertices,temp_vertices[1:]):
-                        return True,edge_len_temp,temp_vertices
-                if trial == 4:
-                    return False,edge_length,vertices
-                else:
-                    flag = True
-
-def region_generator(length,breadth):
-    # np.random.seed()
-    nodes = []
-    t_edges = []
-    b_edges = []
-    l_edges = []
-    r_edges = []
-    for b in range(0,breadth+1,int(breadth/10)):
-        for l in range(0,length+1,int(length/10)):
-            nodes.append([b,l])
-            if b == 0:
-                t_edges.append([l,breadth])
-                b_edges.append([l,0])        
-        r_edges.append([length,b])
-        l_edges.append([0,b])
-
-    edges = np.concatenate((np.array(b_edges),np.array(r_edges[1:]),np.flip(np.array(t_edges),axis=0)[1:],np.flip(np.array(l_edges),axis=0)[1:-1]),axis=0)
-    fig,ax = plt.subplots()
-    ax.set_aspect('equal')
-    ax.plot(edges[:,0],edges[:,1],color='red')
-    ax.plot([edges[0,0] for i in range(2)],np.array(l_edges)[0:2,1],color='red')
-    ax.scatter(edges[:,0],edges[:,1])
-    plt.ion()
-    plt.show()
-    times = np.random.randint(0,100)
-    
-    for run in range(times):
-        delete_edge_loc = np.random.randint(0,len(edges)-1)
-        deleted_edge = np.copy(edges[delete_edge_loc])
-        ax.plot([edges[i,0] for i in range(delete_edge_loc-1,delete_edge_loc+2)],[edges[i,1] for i in range(delete_edge_loc-1,delete_edge_loc+2)],color='black')
-        plt.show()
-        plt.pause(0.1)
-        append_edges_loc = delete_edge_loc
-        ax.scatter(deleted_edge[0],deleted_edge[1],c='black')
-        plt.show()
-        plt.pause(0.1)
-        vec_1 = edges[delete_edge_loc-1] - edges[delete_edge_loc]
-        ax.plot([edges[delete_edge_loc-1][0], edges[delete_edge_loc][0]],[edges[delete_edge_loc-1][1], edges[delete_edge_loc][1]],color='orange')
-        vec_2 = edges[delete_edge_loc+1] - edges[delete_edge_loc]
-        ax.plot([edges[delete_edge_loc+1][0], edges[delete_edge_loc][0]],[edges[delete_edge_loc+1][1], edges[delete_edge_loc][1]],color='orange')
-        dot = np.round(np.dot(vec_1,vec_2))
-        check_line = edges[delete_edge_loc-1] - edges[delete_edge_loc+1]
-        cross = np.cross(vec_2,check_line)
-        
-        if dot==0 and cross>=0: # Cross>0, dot=0
-            edges = np.delete(edges,delete_edge_loc,axis=0)
-            if (b_edges == deleted_edge).all(1).any() and delete_edge_loc!=0:
-                edges = np.insert(edges,append_edges_loc,[edges[delete_edge_loc]+np.array([-length/10,0])],axis=0)
-            elif (r_edges == deleted_edge).all(1).any():
-                edges = np.insert(edges,append_edges_loc,[edges[delete_edge_loc]+np.array([0,-breadth/10])],axis=0)
-            elif (t_edges == deleted_edge).all(1).any():
-                edges = np.insert(edges,append_edges_loc,[edges[delete_edge_loc]+np.array([length/10,0])],axis=0)
-            elif delete_edge_loc==0:
-                edges = np.insert(edges,append_edges_loc,[edges[delete_edge_loc]+np.array([0,breadth/10])],axis=0)
-
-            
-            ax.clear()
-            
-            ax.plot(edges[:,0],edges[:,1],color='blue')
-            ax.plot([edges[-1,0],edges[0,0]],[edges[-1,1],edges[0,1]],color='blue')
-            ax.scatter(edges[:,0],edges[:,1],color='blue')
-            ax.scatter([deleted_edge[0]],[deleted_edge[1]],c='black')
-            plt.show()
-        elif dot==0 and cross<0:
-            pass
-            # ax.scatter([deleted_edge[0]],[deleted_edge[1]],c='black')
-            # edges = np.delete(edges,delete_edge_loc-1,axis=0)
-
-            # edges = np.delete(edges,delete_edge_loc-1,axis=0)
-            # edges = np.insert(edges,append_edges_loc-1,[edges[delete_edge_loc-2]+np.array([-breadth/10,0]),edges[delete_edge_loc-2]+np.array([-2*breadth/10,0]),edges[delete_edge_loc-2]+np.array([-2*breadth/10,length/10])],axis=0)
-            # ax.clear()
-            # ax.plot(edges[:,0],edges[:,1])
-            # ax.scatter(edges[:,0],edges[:,1])
-            
-            # plt.show()
-        elif dot>0:# cross 0, dot >0 ; cross 0, dot <0 
-            edges = np.delete(edges,delete_edge_loc,axis=0)
-
-            ax.clear()
-            # plt.ion()
-            # for i in range(len(edges[:,0])-1):
-            #     ax.plot([edges[i,0],edges[i+1,0]],[edges[i,1],edges[i+1,1]],color='orange')
-            #     plt.show()
-            #     plt.pause(0.5)
-            # plt.ioff()
-            ax.plot(edges[:,0],edges[:,1],color='blue')
-            ax.plot([edges[-1,0],edges[0,0]],[edges[-1,1],edges[0,1]],color='blue')
-            ax.scatter(edges[:,0],edges[:,1],color='blue')
-            ax.scatter([deleted_edge[0]],[deleted_edge[1]],c='black')
-            plt.show()
-        elif dot<0:# cross 0, dot >0 ; cross 0, dot <0 
-            edges = np.delete(edges,delete_edge_loc,axis=0)
-            add_sub = np.random.choice([-1,1])
-            if (t_edges == deleted_edge).all(1).any() or (b_edges == deleted_edge).all(1).any():
-                edges = np.insert(edges,append_edges_loc,[edges[delete_edge_loc-1]+np.array([0,add_sub*int(breadth/10)]),deleted_edge+np.array([0,add_sub*int(breadth/10)]),edges[delete_edge_loc]+np.array([0,add_sub*int(breadth/10)])],axis=0)
-            elif (l_edges == deleted_edge).all(1).any() or (r_edges == deleted_edge).all(1).any():
-                edges = np.insert(edges,append_edges_loc,[edges[delete_edge_loc-1]+np.array([add_sub*int(breadth/10),0]),deleted_edge+np.array([add_sub*int(breadth/10),0]),edges[delete_edge_loc]+np.array([add_sub*int(breadth/10),0])],axis=0)
-            
-            ax.clear()
-            # plt.ion()
-            # for i in range(len(edges[:,0])-1):
-            #     ax.plot([edges[i,0],edges[i+1,0]],[edges[i,1],edges[i+1,1]],color='orange')
-            #     plt.show()
-            #     plt.pause(0.5)
-            # plt.ioff()
-            ax.plot(edges[:,0],edges[:,1],color='blue')
-            ax.plot([edges[-1,0],edges[0,0]],[edges[-1,1],edges[0,1]],color='blue')
-            ax.scatter(edges[:,0],edges[:,1],color='blue')
-            ax.scatter([deleted_edge[0]],[deleted_edge[1]],c='black')
-            plt.show()
-
-    deletion_list = []
-    for i in range(len(edges)-2,1,-2):
-        vec_1 = edges[i-1] - edges[i]
-        ax.plot([edges[i-1][0], edges[i][0]],[edges[i-1][1], edges[i][1]],color='orange')
-        vec_2 = edges[i+1] - edges[i]
-        ax.plot([edges[i+1][0], edges[i][0]],[edges[i+1][1], edges[i][1]],color='orange')
-        dot = np.round(np.dot(vec_1,vec_2))
-        cross = np.cross(vec_2,vec_1)
-        if np.linalg.norm(edges[i-1]-edges[i+1]) == 0:
-            deletion = 1
-        else:
-            deletion = 0
-        if dot>0 and cross==0:
-            deletion_list.append(i)
-        if deletion:
-            deletion_list.append(i+1)
-    deletion_list = np.unique(deletion_list)
-    for j in range(len(deletion_list)-1,0,-1):
-        edges = np.delete(edges,deletion_list[j],axis=0)
-        ax.clear()
-        ax.plot(edges[:,0],edges[:,1],color='blue')
-        ax.plot([edges[-1,0],edges[0,0]],[edges[-1,1],edges[0,1]],color='blue')
-        ax.scatter(edges[:,0],edges[:,1],color='blue')
-        ax.scatter([deleted_edge[0]],[deleted_edge[1]],c='black')
-        plt.show()
-        plt.pause(0.5)    
-
-# region_generator(500,600)
 
 def Inflate_Cut_algorithm(num_vertices):
     '''
@@ -708,12 +313,13 @@ def Inflate_Cut_algorithm(num_vertices):
         # ax.plot(np.array(boundary)[:,0],np.array(boundary)[:,1],color='blue')
         # plt.show()
         # ax.clear()
-        ax.plot(boundary[:,0],boundary[:,1],color = 'black')
-        ax.scatter(boundary[:,0],boundary[:,1],color = 'black')
-        plt.show()
+        if ax is not None:
+            ax.plot(boundary[:,0],boundary[:,1],color = 'black')
+            # ax.scatter(boundary[:,0],boundary[:,1],color = 'black')
+            plt.show()
         return boundary
 
-    def Cut(p,c,ax):
+    def Cut(p,c,ax=None):
         C_tr = p[str(c)].tr 
         
         boundary = polygon_boundary(p,ax)
@@ -828,36 +434,36 @@ def Inflate_Cut_algorithm(num_vertices):
             if isinstance(stop, type(None)):
                 next_ = get_neighbour(p,start,i)
                 grid_list.append(start)
-                x = p[grid_list[-1]].get_x()
-                y = p[grid_list[-1]].get_y()
-                ax.plot(x,y)
+                # x = p[grid_list[-1]].get_x()
+                # y = p[grid_list[-1]].get_y()
+                # ax.plot(x,y)
                 while next_ != stop:
                     grid_list.append(next_)
                     next_ = get_neighbour(p,next_,i)
-                    x = p[grid_list[-1]].get_x()
-                    y = p[grid_list[-1]].get_y()
-                    ax.plot(x,y)
+                    # x = p[grid_list[-1]].get_x()
+                    # y = p[grid_list[-1]].get_y()
+                    # ax.plot(x,y)
                 
                 next_ = get_neighbour(p,grid_list[-1],j)
                 while next_ != stop:
                     grid_list.append(next_)
                     next_ = get_neighbour(p,next_,j)
-                    x = p[grid_list[-1]].get_x()
-                    y = p[grid_list[-1]].get_y()
-                    ax.plot(x,y)
+                    # x = p[grid_list[-1]].get_x()
+                    # y = p[grid_list[-1]].get_y()
+                    # ax.plot(x,y)
             else:
                 next_nei = get_neighbour(p,start,i)
                 grid_list.append(start)
-                x = p[grid_list[-1]].get_x()
-                y = p[grid_list[-1]].get_y()
-                ax.plot(x,y)
+                # x = p[grid_list[-1]].get_x()
+                # y = p[grid_list[-1]].get_y()
+                # ax.plot(x,y)
                 if next_nei != None:
                     while check_presence_inside(i,j,stop,p[next_nei].centroid,start_vertex):
                         grid_list.append(next_nei)
                         next_nei = get_neighbour(p,next_nei,i)
-                        x = p[grid_list[-1]].get_x()
-                        y = p[grid_list[-1]].get_y()
-                        ax.plot(x,y)
+                        # x = p[grid_list[-1]].get_x()
+                        # y = p[grid_list[-1]].get_y()
+                        # ax.plot(x,y)
                         if next_nei == None:
                             break
             
@@ -866,9 +472,9 @@ def Inflate_Cut_algorithm(num_vertices):
                     while check_presence_inside(i,j,stop,p[next_nei].centroid,start_vertex):
                         grid_list.append(next_nei)
                         next_nei = get_neighbour(p,next_nei,j)
-                        x = p[grid_list[-1]].get_x()
-                        y = p[grid_list[-1]].get_y()
-                        ax.plot(x,y)
+                        # x = p[grid_list[-1]].get_x()
+                        # y = p[grid_list[-1]].get_y()
+                        # ax.plot(x,y)
                         if next_nei == None:
                             break
 
@@ -879,18 +485,18 @@ def Inflate_Cut_algorithm(num_vertices):
             if next_nei != None:
                 while check_presence_inside(i,j,stop,p[next_nei].centroid,start_vertex):
                     grid_list.append(next_nei)
-                    x = p[grid_list[-1]].get_x()
-                    y = p[grid_list[-1]].get_y()
-                    ax.plot(x,y)
+                    # x = p[grid_list[-1]].get_x()
+                    # y = p[grid_list[-1]].get_y()
+                    # ax.plot(x,y)
                     side_in = get_opposite_side(j)
                     next_nei_in = get_neighbour(p,grid_list[-1],side_in)
                     if next_nei_in != None:
                         while check_presence_inside(i,j,stop,p[next_nei_in].centroid,start_vertex):
                             grid_list.append(next_nei_in)
                             next_nei_in = get_neighbour(p,next_nei_in,side_in)
-                            x = p[grid_list[-1]].get_x()
-                            y = p[grid_list[-1]].get_y()
-                            ax.plot(x,y)
+                            # x = p[grid_list[-1]].get_x()
+                            # y = p[grid_list[-1]].get_y()
+                            # ax.plot(x,y)
                             if next_nei_in == None:
                                 break
                     next_nei = get_neighbour(p,next_nei,side)
@@ -1016,7 +622,7 @@ def Inflate_Cut_algorithm(num_vertices):
 
         return p,cutting
 
-    def Inflate(p,c,ax):
+    def Inflate(p,c,ax=None):
         C_tr = p[str(c)].tr
         
         # ax.clear()            
@@ -1296,7 +902,7 @@ def Inflate_Cut_algorithm(num_vertices):
     P = {'0': Grid(bl = np.array([50,50]), br = np.array([60,50]), tr = np.array([60,60]), tl = np.array([50,60]))}   # Unit square
 
     plt.ion()
-    fig,ax = plt.subplots()
+    # fig,ax = plt.subplots()
     fig1,ax1 = plt.subplots()
     while r>0:
         cut_success = False
@@ -1305,202 +911,646 @@ def Inflate_Cut_algorithm(num_vertices):
             p_trial = cp.copy(P)
             random_c = np.random.randint(0,len(p_trial))
             random_c = int(list(p_trial.items())[random_c][0])
-            p_trial = Inflate(p_trial,random_c,ax)
-            p_trial, cut_success = Cut(p_trial,random_c,ax1)
+            p_trial = Inflate(p_trial,random_c)
+            p_trial, cut_success = Cut(p_trial,random_c)
         P = p_trial
         ax1.clear()
         polygon_boundary(P,ax1)
         r -= 1
+    
+    # return polygon_boundary(P,ax1)
 
-Inflate_Cut_algorithm(20)
-# U and Z method
-class Decomposition2:
+Inflate_Cut_algorithm(100)
+# Decomposition
+def get_plot(array,type_):
+    if type_ == graph:
+        x = np.empty(0)
+        y = np.empty(0)
+        for i in range(len(array)):
+            x,y = np.append(x,array[i][0]),np.append(y,array[i][1])
+            plt.plot(x,y)
+            
+    elif type_ == edge:
+        count = 0
+        x = np.empty(0)
+        y = np.empty(0)
+        for elem in array:
+            x,y = np.append(x,elem[0]),np.append(y,elem[1])
+            count+=1
+            if count == 2:
+                plt.plot(x,y)
+                x = np.empty(0)
+                y = np.empty(0)
+                count = 0
+
+def plot_show():
+    plt.figure(figsize = (5,5))
+    plt.show()
+
+def get_coordinates(vertices,boundry_check,action,lim_x,lim_y,edge_length):
+
+    cur_x = vertices[-1][0]
+    cur_y = vertices[-1][1]
+
+    boundry = np.array([0,0,0,0])
+
+    if(cur_x == lim_x):
+        boundry[right] = 1
+        boundry_check[right] = 1
+    if(cur_x == 0):
+        boundry[left] = 1
+        boundry_check[left] = 1
+    if(cur_y == lim_y):
+        boundry[up] = 1
+        boundry_check[up] = 1
+    if(cur_y == 0):
+        boundry[down] = 1
+        boundry_check[down] = 1
+
+    arr =  (boundry_check == 1)
+    boundry_condition = True
+
+    for value in arr:
+        if value == False:
+            boundry_condition = False
+
+    if action == up:
+        next_x = cur_x 
+        next_y = cur_y+1
+        collision = False
+        for i in range(len(vertices)-1):
+            if vertices[i+1][0] == next_x and vertices[i+1][1] == next_y:
+                collision=True
+
+        if(boundry[up] == True):
+            return False,edge_length,vertices
+
+        elif(next_x == vertices[0][0] and next_y == vertices[0][1] and edge_length >= 10 ):
+
+            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
+            edge_length+=1
+
+            return True,edge_length,vertices
+
+        elif collision:
+            return False,edge_length,vertices
+
+        else:
+            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
+            updated_edge_len = edge_length+1
+
+            trial = 0
+            flag = True
+            actions = [0,1,2,3]
+            while flag:
+                trial +=1
+                actions = [0,1,2,3]
+                choose_action = random.sample(actions,1)
+                actions = list(np.delete(actions, np.where(np.array(actions) == choose_action[0])))
+                fact_vect_temp,edge_len_temp,temp_vertices = get_coordinates(vertices,boundry_check, choose_action[0], lim_x,lim_y,updated_edge_len)
+
+                if fact_vect_temp == True:
+                    indexes = np.unique(temp_vertices[1:],axis=0, return_index=True)[1]
+                    unique_vertices = [temp_vertices[1:][index] for index in sorted(indexes)]
+                    if np.array_equal(unique_vertices,temp_vertices[1:]):
+                        return True,edge_len_temp,temp_vertices
+                if trial == 4:
+                    return False,edge_length,vertices
+                else:
+                    flag = True
+
+    elif action == right:
+        next_x = cur_x+1 
+        next_y = cur_y
+
+        collision = False
+        for i in range(len(vertices)-1):
+            if vertices[i+1][0] == next_x and vertices[i+1][1] == next_y:
+                collision=True
+
+        if(boundry[right] == True):
+
+            return False,edge_length,vertices
+
+        elif(next_x == vertices[0][0] and next_y == vertices[0][1] and edge_length >= 10  ):
+
+            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
+            edge_length+=1
+
+            return True,edge_length,vertices
+
+        elif(collision):
+            return False,edge_length,vertices
+
+        else:
+            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
+            updated_edge_len = edge_length+1
+
+            trial = 0
+            flag = True
+            actions = [0,1,2,3]
+            while flag:
+                trial +=1
+                actions = [0,1,2,3]
+                choose_action = random.sample(actions,1)
+                actions = list(np.delete(actions, np.where(np.array(actions) == choose_action[0])))
+                fact_vect_temp,edge_len_temp,temp_vertices = get_coordinates(vertices,boundry_check, choose_action[0], lim_x,lim_y,updated_edge_len)
+
+                if fact_vect_temp == True:
+                    indexes = np.unique(temp_vertices[1:],axis=0, return_index=True)[1]
+                    unique_vertices = [temp_vertices[1:][index] for index in sorted(indexes)]
+                    if np.array_equal(unique_vertices,temp_vertices[1:]):
+                        return True,edge_len_temp,temp_vertices
+                if trial == 4:
+                    return False,edge_length,vertices
+                else:
+                    flag = True
+
+    elif action == down:
+        next_x = cur_x 
+        next_y = cur_y-1
+        collision = False
+        for i in range(len(vertices)-1):
+            if vertices[i+1][0] == next_x and vertices[i+1][1] == next_y:
+                collision=True
+
+        if(boundry[down] == True):
+            return False,edge_length,vertices
+
+        elif(next_x == vertices[0][0] and next_y == vertices[0][1] and edge_length >= 10 ):
+
+            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
+            edge_length+=1
+
+            return True,edge_length,vertices
+
+        elif(collision):
+            return False,edge_length,vertices
+
+        else:
+            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
+            updated_edge_len=edge_length+1                  
+
+            trial = 0
+            flag = True
+            actions = [0,1,2,3]
+            while flag:
+                trial +=1
+                
+                choose_action = random.sample(actions,1)
+                actions = list(np.delete(actions, np.where(np.array(actions) == choose_action[0])))
+                fact_vect_temp,edge_len_temp,temp_vertices = get_coordinates(vertices,boundry_check, choose_action[0], lim_x,lim_y,updated_edge_len)
+
+                if fact_vect_temp == True:
+                    indexes = np.unique(temp_vertices[1:],axis=0, return_index=True)[1]
+                    unique_vertices = [temp_vertices[1:][index] for index in sorted(indexes)]
+                    if np.array_equal(unique_vertices,temp_vertices[1:]):
+                        return True,edge_len_temp,temp_vertices
+                if trial == 4:
+                    return False,edge_length,vertices
+                else:
+                    flag = True
+
+    elif action == left:
+        next_x = cur_x-1 
+        next_y = cur_y
+        collision = False
+        for i in range(len(vertices)-1):
+            if vertices[i+1][0] == next_x and vertices[i+1][1] == next_y:
+                collision=True
+
+        if(boundry[left] == True):
+            return False,edge_length,vertices
+
+        elif(next_x == vertices[0][0] and next_y == vertices[0][1] and edge_length >= 10 ):
+
+            vertices = np.append(vertices,[[next_x,next_y]],axis=0)
+            edge_length+=1
+
+            return True,edge_length,vertices
+
+        elif(collision):
+            return False,edge_length,vertices
+
+        else:
+            vertices_ = np.append(vertices,[[next_x,next_y]],axis=0)
+            updated_edge_len=edge_length+1                 
+
+            trial = 0
+            flag = True
+            actions = [0,1,2,3]
+            while flag:
+                trial +=1
+                
+                choose_action = random.sample(actions,1)
+                actions = list(np.delete(actions, np.where(np.array(actions) == choose_action[0])))
+                fact_vect_temp,edge_len_temp,temp_vertices = get_coordinates(vertices_,boundry_check, choose_action[0], lim_x,lim_y,updated_edge_len)
+
+                if fact_vect_temp == True:
+                    indexes = np.unique(temp_vertices[1:],axis=0, return_index=True)[1]
+                    unique_vertices = [temp_vertices[1:][index] for index in sorted(indexes)]
+                    if np.array_equal(unique_vertices,temp_vertices[1:]):
+                        return True,edge_len_temp,temp_vertices
+                if trial == 4:
+                    return False,edge_length,vertices
+                else:
+                    flag = True
+
+# New
+class decomposition:
     
     def __init__(self):
-        self.grid_pts = None
-        self.area_vertices = None
+        self.main_arr = [[0,0]]
     
-    def get_decomposed_graph(self,grid_points):
-        self.grid_pts = np.copy(grid_points)
-        self.area_vertices = self.get_area_vertices(grid_points)
-        rectangles = []
-        for i in range(len(self.area_vertices)+3):
-            if i == 20:
-                print(i)
-            pt_1 = self.area_vertices[int((i)%len(self.area_vertices))]
-            pt_2 = self.area_vertices[int((i+1)%len(self.area_vertices))]
-            pt_3 = self.area_vertices[int((i+2)%len(self.area_vertices))]
-            pt_4 = self.area_vertices[int((i+3)%len(self.area_vertices))]
-            vector_1 = np.array(pt_2) - np.array(pt_1)
-            vector_2 = np.array(pt_3) - np.array(pt_4)
-            vec_1_norm = np.linalg.norm(vector_1)
-            vec_2_norm = np.linalg.norm(vector_2)
-            if vec_1_norm != 0:
-                vector_1 = vector_1/vec_1_norm
-            if vec_2_norm != 0:
-                vector_2 = vector_2/vec_2_norm
-            
-            parallelism = np.dot(vector_1,vector_2)
-            
-            check_line = np.array(pt_2) - np.array(pt_3)
+    def get_decomposed_graph(self,array):
+        
+        self.main_arr = cp.copy(array)
+        #print(array)
+        
+        array = self.get_corner_points(array)
+        #print(array)
+        
+        #get_plot(array)
 
-            com_inside = np.array([np.sum(self.area_vertices[:,0]),np.sum(self.area_vertices[:,1])])/len(self.area_vertices)
+        H,V = self.get_bipartite(array[::],self.main_arr)
 
-            com_line = com_inside - np.array(pt_3)
+        #H,V = self.get_absolute_bipartite(H,V)
+        
+        remaining_edges = self.get_remaining_edge(array,self.main_arr,H,V)
+        # print(H,V,remaining_edges)
+        
+        remaining_edges = [edge.tolist() for edge in remaining_edges]
 
-            com_cross = np.cross(com_line,check_line)
+        get_plot(array,graph)
+        get_plot(H,edge)
+        get_plot(V,edge)
+        get_plot(remaining_edges,edge)
+        plot_show()
+        
+        for edges in remaining_edges:
+            V.append(edges)
 
-            if pt_2[0] == pt_3 [0] and parallelism != -1:
-                min_side = min(vec_1_norm,vec_2_norm)
-                if min_side == vec_1_norm:
-                    rec = np.array([pt_1,pt_2,pt_3,np.array([pt_1[0],pt_3[1]]),pt_1])
-                    new_rec_com = np.array([np.sum(rec[:,0]),np.sum(rec[:,1])])/len(rec)
-                    new_rec_com_line = new_rec_com - np.array(pt_3)
-                    new_rec_com_cross = np.cross(new_rec_com_line,check_line)
-                    check_parallism = np.dot(new_rec_com_cross,com_cross)
-                    if check_parallism>=0:
-                        rectangles.append(rec)
-                else:
-                    rec = np.array([np.array([pt_4[0],pt_2[1]]),pt_2,pt_3,pt_4,np.array([pt_4[0],pt_2[1]])])
-                    new_rec_com = np.array([np.sum(rec[:,0]),np.sum(rec[:,1])])/len(rec)
-                    new_rec_com_line = new_rec_com - np.array(pt_3)
-                    new_rec_com_cross = np.cross(new_rec_com_line,check_line)
-                    check_parallism = np.dot(new_rec_com_cross,com_cross)
-                    if check_parallism>=0:
-                        rectangles.append(rec)
-            elif pt_2[1] == pt_3[1] and parallelism != -1:
-                min_side = min(vec_1_norm,vec_2_norm)
-                if min_side == vec_1_norm:
-                    rec = np.array([pt_1,pt_2,pt_3,np.array([pt_3[0],pt_1[1]]),pt_1])
-                    new_rec_com = np.array([np.sum(rec[:,0]),np.sum(rec[:,1])])/len(rec)
-                    new_rec_com_line = new_rec_com - np.array(pt_3)
-                    new_rec_com_cross = np.cross(new_rec_com_line,check_line)
-                    check_parallism = np.dot(new_rec_com_cross,com_cross)
-                    if check_parallism>=0:
-                        rectangles.append(rec)
-                else:
-                    rec = np.array([np.array([pt_2[0],pt_4[1]]),pt_2,pt_3,pt_4,np.array([pt_2[0],pt_4[1]])])
-                    new_rec_com = np.array([np.sum(rec[:,0]),np.sum(rec[:,1])])/len(rec)
-                    new_rec_com_line = new_rec_com - np.array(pt_3)
-                    new_rec_com_cross = np.cross(new_rec_com_line,check_line)
-                    check_parallism = np.dot(new_rec_com_cross,com_cross)
-                    if check_parallism>=0:
-                        rectangles.append(rec)
+        return array.tolist(),H,V,remaining_edges
 
-        return rectangles
+    def get_corner_points(self,array):
+        
+        x = np.empty(0)
+        y= np.empty(0)
+        for i in range(len(array)):
+            x,y = np.append(x,array[i][0]),np.append(y,array[i][1])
 
-    def get_area_vertices(self,array):
-        array = np.array(array)
-        done = 0
-        pts = len(array)-2
-        while not done:
-            if pts<len(array)-1:
-                this = array[pts]
-                pre = array[pts-1]
-                post = array[pts+1]
+        deletion_count = 0
+        for i in range(len(x) - 2):
+            j = i - deletion_count
 
-                if (pre[0] == this[0] == post[0]) or (pre[1] == this[1] == post[1]):
-                    array = np.delete(array,pts,axis=0)
-            pts -= 1
-            if pts<1:
-                done = 1
+            pre_x = x[i]
+            recent_x = x[i+1]
+            xi = x[i+2]
+            pre_y = y[i]
+            recent_y = y[i+1]
+            yi = y[i+2]
+            flag = True
+            if pre_x == recent_x == xi:
+                flag = False
+                array = np.delete(array,j+1,axis=0)
+                deletion_count += 1
+            if (pre_y == recent_y == yi) and flag:
+                flag = True
+                array = np.delete(array,j+1,axis=0)
+                deletion_count += 1
+                
         return array
-
-# Modified U and Z method using 5 vertex
-class Decomposition1:
     
-    def __init__(self):
-        self.grid_pts = None
-        self.area_vertices = None
+    def get_bipartite(self,coordinates,main_arr):
+        H_of_G = [[0,0]]
+        V_of_G = [[0,0]] 
+
+        action = [0,0,0,0]
+
+        angles = self.get_angle(coordinates)
+        coordinates_less_1 = coordinates[:-1]
+        coordinates_less_1_len = len(coordinates_less_1)
+
+        for i,point in enumerate(coordinates[:-1]):
+            x1 = coordinates[i+1][0]
+            y1 = coordinates[i+1][1]
+
+            x_dif = x1 - coordinates[i][0]
+            y_dif = y1 - coordinates[i][1]
+            arr = np.append(coordinates_less_1[i:],coordinates_less_1[:-(coordinates_less_1_len-(i))],axis=0)
+            arr1 = arr[1:]
+            arr2 = np.append([arr[-1]],arr[:-1],axis=0)
+            arr2 = arr2[1:]
+            angle_ = np.append(angles[i:],angles[:-(coordinates_less_1_len-(i))],axis=0)
+            angle_1 = angle_[1:]
+            angle_2 = np.append(angle_[-1],angle_[:-1])
+            angle_2 = angle_2[1:]
+
+            if y_dif >= 1:
+                action[up] = 1
+                temp1 = self.get_edge_bipartite(arr1,up,angle_1,main_arr)
+                temp2 = self.get_edge_bipartite(arr2,down,angle_2,main_arr)
+                if temp1 != None:
+                    V_of_G = np.append(V_of_G,temp1,axis=0)
+                elif temp2 != None:
+                    V_of_G = np.append(V_of_G,temp2,axis=0)
+            elif y_dif <= -1:
+                action[down] = 1
+                temp1 = self.get_edge_bipartite(arr1,down,angle_1,main_arr)
+                temp2 = self.get_edge_bipartite(arr2,up,angle_2,main_arr)
+                if temp1 != None:
+                    V_of_G = np.append(V_of_G,temp1,axis=0)
+                elif temp2 != None:
+                    V_of_G = np.append(V_of_G,temp2,axis=0)
+            elif x_dif >= 1:
+                action[right] = 1
+                temp1 = self.get_edge_bipartite(arr1,right,angle_1,main_arr)
+                temp2 = self.get_edge_bipartite(arr2,left,angle_2,main_arr)
+                if temp1 != None:
+                    H_of_G = np.append(H_of_G,temp1,axis=0)
+                elif temp2 != None:
+                    H_of_G = np.append(H_of_G,temp2,axis=0)
+            elif x_dif <= -1:
+                action[left] = 1
+                temp1 = self.get_edge_bipartite(arr1,left,angle_1,main_arr)
+                temp2 = self.get_edge_bipartite(arr2,right,angle_2,main_arr)
+                if temp1 != None:
+                    H_of_G = np.append(H_of_G,temp1,axis=0)
+                elif temp2 != None:
+                    H_of_G = np.append(H_of_G,temp2,axis=0)
+        H,V = self.unique_rows(H_of_G[1:]),self.unique_rows(V_of_G[1:])
+
+        H,V = self.get_absolute_bipartite(H,V)
+
+        return H,V
+     
+    def get_edge_bipartite(self,array,action,angle,main_arr):
+        x,y = array[0][0],array[0][1]
+        if action == up:
+            for i,elem in enumerate(array[1:]):
+                if elem[0] == x and elem[1] > y:
+                    if angle[i+1] == 1:
+                        if not self.get_obstacle(np.array(array),elem[0],elem[1],up,main_arr):
+                            x1 = x
+                            y1 = y
+                            x2 = elem[0]
+                            y2 = elem[1]
+                            return [[x1,y1],[x2,y2]]
+        elif action == right:
+            for i,elem in enumerate(array[1:]):
+                if elem[1] == y and elem[0] > x:
+                    if angle[i+1] == 1:
+                        if not self.get_obstacle(np.array(array),elem[0],elem[1],right,main_arr):
+                            x1 = x
+                            y1 = y
+                            x2 = elem[0]
+                            y2 = elem[1]
+                            return [[x1,y1],[x2,y2]]
+        elif action == down:
+            for i,elem in enumerate(array[1:]):
+                if elem[0] == x and elem[1] < y:
+                    if angle[i+1] == 1:
+                        if not self.get_obstacle(np.array(array),elem[0],elem[1],down,main_arr):
+                            x1 = x
+                            y1 = y
+                            x2 = elem[0]
+                            y2 = elem[1]
+                            return [[x1,y1],[x2,y2]]
+        elif action == left:
+            for i,elem in enumerate(array[1:]):
+                if elem[1] == y and elem[0] < x:
+                    if angle[i+1] == 1:
+                        if not self.get_obstacle(np.array(array),elem[0],elem[1],left,main_arr):
+                            x1 = x
+                            y1 = y
+                            x2 = elem[0]
+                            y2 = elem[1]
+                            return [[x1,y1],[x2,y2]]
+
+
+        return None
     
-    def get_decomposed_graph(self,grid_points):
-        self.grid_pts = np.copy(grid_points)
-        self.area_vertices = self.get_area_vertices(grid_points)
-        rectangles = []
-        for i in range(len(self.area_vertices)+4):
-            if i == 20:
-                print(i)
-            pt_1 = self.area_vertices[int((i)%len(self.area_vertices))]
-            pt_2 = self.area_vertices[int((i+1)%len(self.area_vertices))]
-            pt_3 = self.area_vertices[int((i+2)%len(self.area_vertices))]
-            pt_4 = self.area_vertices[int((i+3)%len(self.area_vertices))]
-            pt_5 = self.area_vertices[int((i+4)%len(self.area_vertices))]
-            vector_1 = np.array(pt_2) - np.array(pt_1)
-            vector_2 = np.array(pt_3) - np.array(pt_4)
-            vec_1_norm = np.linalg.norm(vector_1)
-            vec_2_norm = np.linalg.norm(vector_2)
-            if vec_1_norm != 0:
-                vector_1 = vector_1/vec_1_norm
-            if vec_2_norm != 0:
-                vector_2 = vector_2/vec_2_norm
+    def get_obstacle(self,array,x2,y2,action,main_arr):
+        obstacle = 0
+        x = array[0][0]
+        y = array[0][1]
+        
+        if action == up or action == down:
+            #y will be var
+            low = min(y,y2)
+            high = max(y,y2)
+            for j in range(low+1,high):
+                for i in main_arr[1:]:
+                    if np.array_equal(np.array([x,j]),np.array(i)):
+                        obstacle = 1
+                        
+                        break
+
+        if action == right or action == left:
+            low = min(x,x2)
+            high = max(x,x2)
+            for j in range(low+1,high):
+                for i in main_arr[1:]:
+                    if np.array_equal(np.array([j,y]),np.array(i)):
+                        obstacle = 1
+                        
+                        break
+        return obstacle
+    
+    def get_absolute_bipartite(self,H,V):
+        V_return = [[0,0]]
+        for i in range(0,len(V),2):
+            high_V = max(V[i][1],V[i+1][1])
+            low_V = min(V[i][1],V[i+1][1])
+            V_x = V[i][0]
+            flag = 0
+            for j in range(0,len(H),2):
+                high_H = max(H[j][0],H[j+1][0])
+                low_H = min(H[j][0],H[j+1][0])
+                H_y = H[j][1]
+
+                if H_y < high_V and H_y > low_V:
+
+                    if V_x < high_H and V_x > low_H:
+
+                        flag = 1
+            if flag == 0:
+                V_return = (np.append(V_return,[V[i],V[i+1]],axis=0)).tolist()
+        return H,list(V_return[1:])
+    
+    def get_remaining_edge(self,array,main_arr,H,V):
+        main_H = [[0,0]]
+        main_V = [[0,0]]
+        for i in range(0,len(H),2):
+            low = min(H[i][0],H[i+1][0])
+            high = max(H[i][0],H[i+1][0])
             
-            parallelism = np.dot(vector_1,vector_2)
+            for j in range(low,high+1):
+                main_H = list(np.append(main_H,[[j,H[i][1]]],axis=0))
+        main_H = main_H[1:]
+        for i in range(0,len(V),2):
+            low = min(V[i][1],V[i+1][1])
+            high = max(V[i][1],V[i+1][1])
             
-            check_line = np.array(pt_2) - np.array(pt_3)
+            for j in range(low,high+1):
+                main_V = list(np.append(main_V,[[V[i][0],j]],axis=0))
+        main_V = main_V[1:]
+        
+        all_points = main_arr
+        if len(main_H) > 0:
+            all_points = list(np.append(all_points,main_H,axis=0))
+        if len(main_V) > 0:
+            all_points = list(np.append(all_points,main_V,axis=0))
+        
+        all_points = np.unique(all_points,axis=0)
+        
+        angles = self.get_angle(array)
+        
+        remaining_point = [[0,0]]
+        for i,elem in enumerate(array[:-1]):
+            edge_flag = 0
+            if angles[i] == 1:
+                
+                for point in H:
+                    if np.array_equal(point,elem):
+                        edge_flag = 1
+                        break
+                if edge_flag == 0:
+                    
+                    for point in V:
+                        if np.array_equal(point,elem):
+                            edge_flag = 1
+                            break
+                if edge_flag == 0:
+                    remaining_point = list(np.append(remaining_point,[elem],axis=0))
+                    
+        remaining_point = remaining_point[1:]
+        extra_edge = [[0,0]]
 
-            com_inside = np.array([np.sum(self.area_vertices[:,0]),np.sum(self.area_vertices[:,1])])/len(self.area_vertices)
+        for point in remaining_point:
+#             print(remaining_point)
+#             print(extra_edge)
+            action = -1
+            for i,elem in enumerate(main_arr):
 
-            com_line = com_inside - np.array(pt_3)
+                if np.array_equal(point,elem):
+                    pre = main_arr[i-1]
+                    # Getting error here array size error
+                    post = main_arr[i+1]
+                    if pre[1] < elem[1]:
+                        action = up
+                        break
+                    elif pre[1] > elem[1]:
+                        action = down
+                        break
+                    elif pre[1] == elem[1]:
+                        if post[1] > elem[1]:
+                            action = down
+                        else:
+                            action = up
 
-            com_cross = np.cross(com_line,check_line)
+            if action == up:
+                extra_edge = np.append(extra_edge,[point],axis=0)
+                yi = point[1]
+                xi = point[0]
+                exit = 0
+                while(1):
+                    yi+=1
+                    #print(yi)
+                    for j in all_points:
+                        if np.array_equal(j,[xi,yi]):
 
-            if pt_2[0] == pt_3 [0] and parallelism != -1:
-                min_side = min(vec_1_norm,vec_2_norm)
-                if min_side == vec_1_norm:
-                    rec = np.array([pt_1,pt_2,pt_3,np.array([pt_1[0],pt_3[1]]),pt_1])
-                    new_rec_com = np.array([np.sum(rec[:,0]),np.sum(rec[:,1])])/len(rec)
-                    new_rec_com_line = new_rec_com - np.array(pt_3)
-                    new_rec_com_cross = np.cross(new_rec_com_line,check_line)
-                    check_parallism = np.dot(new_rec_com_cross,com_cross)
-                    if check_parallism>=0:
-                        rectangles.append(rec)
-                else:
-                    rec = np.array([np.array([pt_4[0],pt_2[1]]),pt_2,pt_3,pt_4,np.array([pt_4[0],pt_2[1]])])
-                    new_rec_com = np.array([np.sum(rec[:,0]),np.sum(rec[:,1])])/len(rec)
-                    new_rec_com_line = new_rec_com - np.array(pt_3)
-                    new_rec_com_cross = np.cross(new_rec_com_line,check_line)
-                    check_parallism = np.dot(new_rec_com_cross,com_cross)
-                    if check_parallism>=0:
-                        rectangles.append(rec)
-            elif pt_2[1] == pt_3[1] and parallelism != -1:
-                min_side = min(vec_1_norm,vec_2_norm)
-                if min_side == vec_1_norm:
-                    rec = np.array([pt_1,pt_2,pt_3,np.array([pt_3[0],pt_1[1]]),pt_1])
-                    new_rec_com = np.array([np.sum(rec[:,0]),np.sum(rec[:,1])])/len(rec)
-                    new_rec_com_line = new_rec_com - np.array(pt_3)
-                    new_rec_com_cross = np.cross(new_rec_com_line,check_line)
-                    check_parallism = np.dot(new_rec_com_cross,com_cross)
-                    if check_parallism>=0:
-                        rectangles.append(rec)
-                else:
-                    rec = np.array([np.array([pt_2[0],pt_4[1]]),pt_2,pt_3,pt_4,np.array([pt_2[0],pt_4[1]])])
-                    new_rec_com = np.array([np.sum(rec[:,0]),np.sum(rec[:,1])])/len(rec)
-                    new_rec_com_line = new_rec_com - np.array(pt_3)
-                    new_rec_com_cross = np.cross(new_rec_com_line,check_line)
-                    check_parallism = np.dot(new_rec_com_cross,com_cross)
-                    if check_parallism>=0:
-                        rectangles.append(rec)
+                            extra_edge = np.append(extra_edge,[j],axis=0)
+                            exit = 1
+                            break
+                        else:
+                            pass
+                    if exit == 1:
+                        break
 
-        return rectangles
+            if action == down:
+                extra_edge = np.append(extra_edge,[point],axis=0)
+                yi = point[1]
+                xi = point[0]
+                exit = 0
+                while(1):
+                    yi-=1
+                    #print(xi,yi)
+                    for j in all_points:
+                        if np.array_equal(j,[xi,yi]):
 
-    def get_area_vertices(self,array):
-        array = np.array(array)
-        done = 0
-        pts = len(array)-2
-        while not done:
-            if pts<len(array)-1:
-                this = array[pts]
-                pre = array[pts-1]
-                post = array[pts+1]
+                            extra_edge = np.append(extra_edge,[j],axis=0)
+                            exit = 1
+                            break
+                        else:
+                            pass
+                    if exit == 1:
+                        break
 
-                if (pre[0] == this[0] == post[0]) or (pre[1] == this[1] == post[1]):
-                    array = np.delete(array,pts,axis=0)
-            pts -= 1
-            if pts<1:
-                done = 1
-        return array
+        extra_edge = extra_edge[1:]
+        return list(extra_edge)
 
-# Decomposition method
+    def unique_rows(self,a):
+        #print(a)
+        for i in range(len(a)):
+            for j in range(i):
+                if np.array_equal(a[j],a[i]):
+
+                    a[i]=[-1,-1]
+                    #print(a)
+                    break
+        return_a = [elem.tolist() for i,elem in enumerate(a) if not np.array_equal([-1,-1],elem)]
+        #print('final_a',return_a)
+        return return_a
+
+    def get_angle(self,array):
+
+        past_action = None
+        post_action = None
+        angle = np.zeros(len(array)-1)
+        action = np.array([0,0])
+
+        for i,point in enumerate(array[:-1]):
+
+            if i == 0:
+                past_point = array[-2]
+                cur_point = array[0]
+                post_point = array[1]
+            else:
+                past_point = array[i-1]
+                cur_point = array[i]
+                post_point = array[i+1] 
+
+            x_dif = -(past_point[0] - cur_point[0])
+            y_dif = -(past_point[1] - cur_point[1])
+            if x_dif >= 1:
+                action[0] = right
+            elif x_dif <= -1:
+                action[0] = left
+            elif y_dif >= 1:
+                action[0] = up
+            elif y_dif <= -1:
+                action[0] = down
+
+            x_dif = -(cur_point[0] - post_point[0])
+            y_dif = -(cur_point[1] - post_point[1])
+            if x_dif >= 1:
+                action[1] = right
+            elif x_dif <= -1:
+                action[1] = left
+            elif y_dif >= 1:
+                action[1] = up
+            elif y_dif <= -1:
+                action[1] = down
+
+            if (action[0]==right and action[1]==down) or (action[0]==left and action[1]==up) or (action[0]==down and action[1]==left) or (action[0]==up and action[1]==right):
+                angle[i] = concave
+            else:
+                angle[i] = convex
+
+        return angle
+
+# Old
 class Decomposition:
     
     def __init__(self):
@@ -1848,6 +1898,225 @@ class Decomposition:
                 angle[i-1] = 0    # Convex
         return angle
 
+def get_complete_edges(graph,H,V,remaining_edges):
+    for i,point in enumerate(remaining_edges):
+    
+      if i % 2 == 1 : 
+        x = point[0]
+        y = point[1]
+        flag = 0
+
+        pre_x = graph[0][0]
+        pre_y = graph[0][1]
+        for j,coord in enumerate(graph[1:-1]):
+            post_x = coord[0]
+            post_y = coord[1]
+
+            if y == pre_y == post_y:
+                if min(pre_x,post_x) < x and max(pre_x,post_x) > x:
+                    graph.insert(j+1,[x,y])
+                    flag = 1
+
+            pre_x = coord[0]
+            pre_y = coord[1]
+
+          
+
+        if flag == 0:
+            for j,coord in enumerate(H):
+
+                if j % 2 == 1:
+                    pre_x = H[j-1][0]
+                    post_x = coord[0]
+
+                    curr_y = coord[1]
+
+                    if min(pre_x,post_x) < x and max(pre_x,post_x) > x and curr_y == y:
+                        H.insert(j,[x,y])
+
+    return graph,H
+
+class neighbour:
+    
+    def __init__(self,vertex):
+        self.vertex = vertex
+        self.north = [-1,-1]
+        self.east = [-1,-1]
+        self.south = [-1,-1]
+        self.west = [-1,-1]
+        
+    def neighbours(self,north,east,south,west):
+        self.north = north
+        self.east = east
+        self.south = south
+        self.west = west
+
+def get_decomposed_squares(graph,H,V):
+    
+    class my_dictionary(dict): 
+  
+    # __init__ function 
+        def __init__(self): 
+            self = dict() 
+
+        # Function to add key:value 
+        def add(self, key, value): 
+            self[key] = value 
+            print(key)
+
+    dict_obj = my_dictionary() 
+    
+    for i,elem in enumerate(graph):
+
+        node = get_neighbour(elem,graph,H,V)
+        
+        dict_obj.add(str(elem),node)
+
+        #print(dict_obj[str(elem)].north,elem)
+#     array = np.append(graph,H)
+#     array = np.unique(array,axis=0)
+
+    x_max = max([elem[0] for elem in graph])
+    
+    array = [[]]
+    for i in range(x_max+1):
+        
+        array.append([elem for elem in graph[:-1] if elem[0]==i])
+        array[i+1] = (np.sort(array[i+1],axis=0)).tolist()
+        
+    array = array[1:]
+    turn = first
+    squares = [[]]
+    print('----')
+    for whole in array:
+        turn = first
+        for i,elem in enumerate(whole):
+            if elem[0] == x_max:
+                break
+            
+            #elif dict_obj[str(elem)].north[0] != -1 and turn == first:
+                #pass
+            
+            elif turn == first:
+                elem1 = elem
+                turn = second
+                print(elem,' first')
+                
+            elif turn == second:
+                print(elem,' second')
+                if not np.array_equal(dict_obj[str(elem)].east,[-1,-1]):
+                    x = -1
+                    elem3 = cp.copy(elem)
+                    elem4 = cp.copy(elem1)
+                    flag = False
+                    print(elem3,' elem3 ',elem4,' elem4')
+                    while((not np.array_equal(dict_obj[str(elem3)].east,[-1,-1]))):
+                        elem3 = dict_obj[str(elem3)].east
+                        x = elem3[0]
+                        if (not np.array_equal(dict_obj[str(elem3)].south,[-1,-1])):
+                            flag = True
+                            break
+                    print('count ',x)
+                    while(x!=elem4[0] and flag != False):
+                        print(elem4)
+                        if np.array_equal(dict_obj[str(elem4)].east,[-1,-1]):
+                            flag = False
+                            break
+                        else:
+                            elem4 = dict_obj[str(elem4)].east
+                    #elem4 = dict_obj[str(elem4)].east
+                    
+                    #elem4 = dict_obj[str(elem4)].east
+                    
+                    if flag == True:
+                        coord = [elem1,elem,elem3,elem4]
+                        squares.append(coord)
+                        print('squares ',squares)
+                    
+                    if not np.array_equal(dict_obj[str(elem)].north,[-1,-1]):
+                        elem1 = elem
+                    else:
+                        turn = first
+                else:
+                    pass
+    print(squares[1:])
+    return squares[1:]
+    
+def get_neighbour(vertex,graph,H,V):
+    
+    node = neighbour(vertex)
+        
+    temp = np.append([graph[-2]],graph,axis=0)
+    for i,elem in enumerate(graph[:-1]):
+
+        if np.array_equal(elem,vertex):
+            pre = [temp[i][0],temp[i][1]]
+            post = [temp[i+2][0],temp[i+2][1]]
+            
+
+            dif_pre_x,dif_pre_y = elem[0] - pre[0],elem[1] - pre[1]
+            dif_post_x,dif_post_y = post[0] - elem[0], post[1] - elem[1]
+            
+            #print(dif_pre_x,dif_pre_y,dif_post_x,dif_post_y,pre,post)
+
+            if dif_pre_x != 0 :
+                if dif_pre_x < 0: 
+                    node.east = pre 
+                else:
+                    node.west = pre
+                    
+            elif dif_pre_y != 0:
+                if dif_pre_y < 0:
+                    node.north = pre 
+                else:
+                    node.south = pre
+
+            if dif_post_x != 0 :
+                if dif_post_x < 0:
+                    node.west = post
+                else:
+                    node.east = post
+                    
+            elif dif_post_y != 0:
+                if dif_post_y < 0:
+                    node.south = post
+                else: 
+                    node.north = post
+
+    for i,elem in enumerate(H):
+        
+        if np.array_equal(elem,vertex):
+            ind = i % 2
+            
+            if ind == 1:
+                temp = H[i-1] 
+            else:
+                temp = H[i+1]
+            
+            if temp[0] < vertex[0]:
+                node.west = temp
+            else:
+                node.east = temp
+                
+    for i,elem in enumerate(V):
+        
+        if np.array_equal(elem,vertex):
+            ind = i % 2
+            
+            if ind == 1:
+                temp = V[i-1] 
+            else:
+                temp = V[i+1]
+            
+            if temp[1] < vertex[1]:
+                node.south = temp
+            else:
+                node.north = temp     
+                
+    return node
+
+
+#   Spacefilling curves
 def plot_main_figure(height,width,inner_grid_height,inner_grid_width):
     x_scalar,y_scalar = 0,0
     x,y = [0],[0]
@@ -1937,10 +2206,6 @@ def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width):
 
     return [x_center,y_center], rectangular_hilbert_curves
 
-#!/usr/bin/env python3
-# SPDX-License-Identifier: BSD-2-Clause
-# Copyright (c) 2018 Jakub Červený
-
 def gilbert2d(width, height):
     """
     Generalized Hilbert ('gilbert') space-filling curve for arbitrary-sized
@@ -2023,89 +2288,92 @@ def get_space_fill_graph(x1,y1,x2,y2,inner_grid_height,inner_grid_width):
     return [x,y]
 
 
+#   Decomposition
+up = 0
+right = 1
+down = 2
+left = 3
+convex = 0
+concave = 1
+graph = 0
+edge = 1
+first = 1
+second = 2
 
-if __name__ == "__main__":
-    up = 0
-    right = 1
-    down = 2
-    left = 3
+D = decomposition()
 
-    graph = 0
-    edge = 1
+# array = np.array([[0,0],[1,0],[2,0],[2,1],[3,1],[4,1],[4,0],[5,0],[5,1],[5,2],[5,3],[4,3],[4,4],[5,4],[5,5],[4,5],[3,5],[3,4],[2,4],[2,5],[1,5],[1,4],[0,4],[0,3],[1,3],[2,3],[3,3],[3,2],[2,2],[1,2],[1,1],[0,1],[0,0]])
+#array = np.array([[0,0],[1,0],[2,0],[3,0],[4,0],[5,0],[5,1],[4,1],[4,2],[5,2],[5,3],[5,4],[5,5],[4,5],[3,5],[3,4],[2,4],[1,4],[0,4],[0,3],[0,2],[1,2],[1,1],[0,1],[0,0]])
+array = Inflate_Cut_algorithm(100)
 
-    # arena_w = 3
-    # arena_h = 3
-    # grids = np.array([Node(i,arena_h=arena_h,arena_w=arena_w) for i in range(arena_w*arena_h)]).reshape((arena_h,arena_w))
+plt.pause(5)
 
-    # edges = adjacency_mat(grids)
-
-    D = Decomposition()
-    array = np.array([[0,0],[1,0],[2,0],[2,1],[3,1],[4,1],[4,0],[5,0],[5,1],[5,2],[5,3],[4,3],[4,4],[5,4],[5,5],[4,5],[3,5],[3,4],[2,4],[2,5],[1,5],[1,4],[0,4],[0,3],[1,3],[2,3],[3,3],[3,2],[2,2],[1,2],[1,1],[0,1],[0,0]])
-    area_vertices = D.get_area_vertices(array)
+get_plot(array,graph)
 
 
+graph,H,V,remaining_edges = D.get_decomposed_graph(array)
+
+graph,H = get_complete_edges(graph,H,V,remaining_edges)
+
+get_decomposed_squares(graph,H,V)
+plt.pause(10)
+# H,V, remaining_edges = D.get_decomposed_graph(array)
+
+# print(H,V, remaining_edges)
+
+# get_plot(array,graph)
+# get_plot(H,edge)
+# get_plot(V,edge)
+# get_plot(remaining_edges,edge)
+# plot_show()
+
+# rectangles = np.array(D.get_decomposed_graph(array))
+
+# for r in range(len(rectangles)-1,-1,-1):
+#     check = []
+#     for i in range(len(rectangles[0])):
+#         if np.linalg.norm(rectangles[r,i]-rectangles[r-1,i])==0:
+#             check.append(1)
+#     if np.sum(check)>1:
+#         rectangles = np.delete(rectangles,r,axis=0)
+#         rectangles = np.delete(rectangles,r-1,axis=0)
+
+# fig,ax = plt.subplots()
+# for r in rectangles:
+#     ax.plot(r[:,0],r[:,1])
+
+# plt.ioff()
+# plt.show()
+
+# dict_obj[str([1,4])]
+
+
+
+# if __name__ == "__main__":
+#     # Spacefilling part Implement searching using Monte Carlo instead of simple calculations
+#     height = 120
+#     width = 120
+
+#     inner_grid_width = 15
+#     inner_grid_height = 10
+
+#     DG1, DG2, RHC1, RHC2 = plot_main_figure(height,width,inner_grid_height,inner_grid_width)
     
+#     k_max = len(DG1[0]) + len(DG2[0])
+#     time = []
+#     optimal_k = []
+#     for t in range(1,k_max+1):
+#         optimal_searcher = []
+#         for k in range(k_max,0,-1):
+#             if (len(DG1[0])+len(DG2[0]))/k - t == 0.0:
+#                 optimal_searcher.append(k)
 
-    plt.ion()
-    get_plot(array,graph)
-    plot_show()
+#         if len(optimal_searcher)!=0:
+#             time.append(t)
+#             optimal_k.append(min(optimal_searcher))
 
-    H,V, remaining_edges = D.get_decomposed_graph(array)
-
-    print(H,V, remaining_edges)
-
-    get_plot(array,graph)
-    get_plot(H,edge)
-    get_plot(V,edge)
-    get_plot(remaining_edges,edge)
-    plot_show()
-
-    rectangles = np.array(D.get_decomposed_graph(array))
-    
-    for r in range(len(rectangles)-1,-1,-1):
-        check = []
-        for i in range(len(rectangles[0])):
-            if np.linalg.norm(rectangles[r,i]-rectangles[r-1,i])==0:
-                check.append(1)
-        if np.sum(check)>1:
-            rectangles = np.delete(rectangles,r,axis=0)
-            rectangles = np.delete(rectangles,r-1,axis=0)
-
-    fig,ax = plt.subplots()
-    for r in rectangles:
-        ax.plot(r[:,0],r[:,1])
-    
-    plt.ioff()
-    plt.show()
-
-    # height = 120
-    # width = 120
-
-    # inner_grid_width = 15
-    # inner_grid_height = 10
-
-    # DG1, DG2, RHC1, RHC2 = plot_main_figure(height,width,inner_grid_height,inner_grid_width)
-    
-    # k_max = len(DG1[0]) + len(DG2[0])
-    # time = []
-    # optimal_k = []
-    # for t in range(1,k_max+1):
-    #     optimal_searcher = []
-    #     for k in range(k_max,0,-1):
-    #         if (len(DG1[0])+len(DG2[0]))/k - t == 0.0:
-    #             optimal_searcher.append(k)
-
-    #     if len(optimal_searcher)!=0:
-    #         time.append(t)
-    #         optimal_k.append(min(optimal_searcher))
-
-            
-
-    # plt.plot(time,optimal_k)
-    # plt.show()
-
-
-
+#     plt.plot(time,optimal_k)
+#     plt.show()
 
 
 
