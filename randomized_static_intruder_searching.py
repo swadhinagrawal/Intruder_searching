@@ -462,8 +462,8 @@ if dynamic_intruder:
                     robots[i].present_loc = robots[i].path_trace[robots[i].path_progressor] # add index increment
 
                 t += 1
-                for p in paths:
-                    if np.linalg.norm(intruder.present_loc-np.array(p))==0:
+                for r in robots:
+                    if np.linalg.norm(intruder.present_loc-r.present_loc)==0:
                         search_state = 1
                         break  
                 plt.show()
