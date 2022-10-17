@@ -1577,11 +1577,11 @@ def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax):
 
             x_center,y_center = np.append(x_center,x_cen),np.append(y_center,y_cen)
 
-            ax.plot(x_temp,y_temp,color='black')
+            # ax.plot(x_temp,y_temp,color='black')
         
-    ax.scatter(x_center,y_center,c='green',s=10)
+    # ax.scatter(x_center,y_center,c='green',s=10)
     
-    rectangular_hilbert_curves = get_space_fill_graph(x_center[0],y_center[0],x_center[-1],y_center[-1],inner_grid_height,inner_grid_width)
+    rectangular_hilbert_curves = get_space_fill_graph(x_center[0],y_center[0],x_center[-1],y_center[-1],inner_grid_height,inner_grid_width,ax)
 
     return [x_center,y_center], rectangular_hilbert_curves
 
@@ -1650,7 +1650,7 @@ def generate2d(x, y, ax, ay, bx, by):
         yield from generate2d(x+(ax-dax)+(bx2-dbx), y+(ay-day)+(by2-dby),
                               -bx2, -by2, -(ax-ax2), -(ay-ay2))
 
-def get_space_fill_graph(x1,y1,x2,y2,inner_grid_height,inner_grid_width):
+def get_space_fill_graph(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax):
     height = (abs(y2-y1)//inner_grid_height) + 1
     width = (abs(x2-x1)//inner_grid_width) + 1
 
@@ -1662,7 +1662,7 @@ def get_space_fill_graph(x1,y1,x2,y2,inner_grid_height,inner_grid_width):
 
     x,y = x_arr + x1,y_arr + y1 
 
-    plt.plot(x,y,color='red',linewidth = 2)
+    ax.plot(x,y,color='red',linewidth = 2)
 
     return [x,y]
 
@@ -1681,7 +1681,7 @@ second = 2
 
 D = decomposition()
 fig,ax = plt.subplots()
-array,grids = Inflate_Cut_algorithm(20,ax)
+array,grids = Inflate_Cut_algorithm(10,ax)
 
 plt.pause(5)
 
@@ -1696,23 +1696,29 @@ rectangles = get_decomposed_squares(graph,H,V)
 plt.pause(5)
 
 if __name__ == "__main__":
-    for r in rectangles:
-        make_grid(r[0][0],r[0][1],r[2][0],r[1][1],1,1,ax)
-        # Spacefilling part Implement searching using Monte Carlo instead of simple calculations
     plt.ioff()
-    plt.show()
-        # k_max = len(DG1[0]) + len(DG2[0])
-        # time = []
-        # optimal_k = []
-        # for t in range(1,k_max+1):
-        #     optimal_searcher = []
-        #     for k in range(k_max,0,-1):
-        #         if (len(DG1[0])+len(DG2[0]))/k - t == 0.0:
-        #             optimal_searcher.append(k)
+    for runs in range(10):
+        k_max = 0
+        for r in rectangles:
+            dg , hsc = make_grid(r[0][0],r[0][1],r[2][0],r[1][1],1,1,ax)
+            k_max += len(dg[0])
 
-        #     if len(optimal_searcher)!=0:
-        #         time.append(t)
-        #         optimal_k.append(min(optimal_searcher))
+        
+        plt.show()
+        time = []
+        optimal_k = []
+        for t in range(1,k_max+1):
+            optimal_searcher = []
+            for k in range(k_max,0,-1):
+                if k_max/k - t == 0.0:
+                    optimal_searcher.append(k)
 
-        # plt.plot(time,optimal_k)
-        # plt.show()
+            if len(optimal_searcher)!=0:
+                time.append(t)
+                optimal_k.append(min(optimal_searcher))
+        fig,ax = plt.subplots()
+        ax.plot(time,optimal_k)
+        plt.show()
+        
+        
+            

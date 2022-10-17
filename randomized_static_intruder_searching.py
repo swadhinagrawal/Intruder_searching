@@ -208,8 +208,7 @@ def searchers_plot(robots,ax):
 def visited_loc(robots):
     present_locs = []
     for r in robots:
-        if not isinstance(r.path_trace,type(None)):
-            present_locs += r.path_trace
+        present_locs += [list(r.present_loc)]
     return present_locs
 
 def plot_past_path(ax,robots):
@@ -344,8 +343,8 @@ if static_intruder:
 
                     robots[i].past_loc = robots[i].present_loc
                     
-                    robots[i].path_progressor += 1
                     robots[i].present_loc = robots[i].path_trace[robots[i].path_progressor] # add index increment
+                    robots[i].path_progressor += 1
 
                 t += 1
                 for r in robots:
@@ -457,9 +456,9 @@ if dynamic_intruder:
                     paths+= list(robots[i].present_loc)
 
                     robots[i].past_loc = robots[i].present_loc
-                    
-                    robots[i].path_progressor += 1
+
                     robots[i].present_loc = robots[i].path_trace[robots[i].path_progressor] # add index increment
+                    robots[i].path_progressor += 1
 
                 t += 1
                 for r in robots:
