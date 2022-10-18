@@ -1,6 +1,8 @@
 #   Authors: Aayush Gohil, Swadhin Agrawal
 
 from array import array
+from cmath import rect
+from curses.textpad import rectangle
 import numpy as np
 import matplotlib.pyplot as plt
 import copy as cp
@@ -318,12 +320,12 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
             ax.plot(boundary[:,0],boundary[:,1],color = 'black')
             # ax.scatter(boundary[:,0],boundary[:,1],color = 'black')
             plt.show()
-        return boundary
+        return boundary, edges, start_edge, end_edge
 
     def Cut(p,c,ax=None):
         C_tr = p[str(c)].tr 
         
-        boundary = polygon_boundary(p,ax)
+        boundary, _,_,_ = polygon_boundary(p,ax)
 
         def get_neighbour(cel,loc,s):
             if s == 'r':
@@ -922,623 +924,157 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
         ax1.clear()
         polygon_boundary(P,ax1)
         r -= 1
-    
-    return polygon_boundary(P,ax), P
+    boundary,edges,start_edge,end_edge = polygon_boundary(P,ax)
+    return boundary,edges,start_edge,end_edge , P
 
 # Decomposition
-def get_plot(array,type_):
-    if type_ == graph:
-        x = np.empty(0)
-        y = np.empty(0)
-        for i in range(len(array)):
-            x,y = np.append(x,array[i][0]),np.append(y,array[i][1])
-            plt.plot(x,y)
-            
-    elif type_ == edge:
-        count = 0
-        x = np.empty(0)
-        y = np.empty(0)
-        for elem in array:
-            x,y = np.append(x,elem[0]),np.append(y,elem[1])
-            count+=1
-            if count == 2:
-                plt.plot(x,y)
-                x = np.empty(0)
-                y = np.empty(0)
-                count = 0
 
-def plot_show():
-    plt.figure(figsize = (5,5))
-    plt.show()
+def get_area_vertices(array):
+    array = np.array(array)
+    done = 0
+    pts = len(array)-2
+    while not done:
+        if pts<len(array)-1:
+            this = array[pts]
+            pre = array[pts-1]
+            post = array[pts+1]
 
-class decomposition: 
-    def __init__(self):
-        self.main_arr = [[0,0]]
+            if (pre[0] == this[0] == post[0]) or (pre[1] == this[1] == post[1]):
+                array = np.delete(array,pts,axis=0)
+        pts -= 1
+        if pts<1:
+            done = 1
+    return array
 
-    def get_decomposed_graph(self,array):
+def get_rectangles(p,vertex_set,ax):
+    grids = cp.copy(p)
+    rectangles = []
+    while len(grids)>0:
+        g = list(grids.items())[0][0]
+        marker = [0,0,0,0]  # l,r,t,b
+        if grids[g].l_nei is not None:
+            marker[0] = 1
+        if grids[g].r_nei is not None:
+            marker[1] = 1
+        if grids[g].t_nei is not None:
+            marker[2] = 1
+        if grids[g].b_nei is not None:
+            marker[3] = 1
+        while grids[g].l_nei != None or grids[g].b_nei != None:
+            while grids[g].l_nei != None:
+                g = grids[g].l_nei
+            while grids[g].b_nei != None:
+                g = grids[g].b_nei
+
+            marker = [0,0,0,0]  # l,r,t,b
+            if grids[g].l_nei is not None:
+                marker[0] = 1
+            if grids[g].r_nei is not None:
+                marker[1] = 1
+            if grids[g].t_nei is not None:
+                marker[2] = 1
+            if grids[g].b_nei is not None:
+                marker[3] = 1
         
-        self.main_arr = cp.copy(array)
+        #     x = grids[g].get_x()
+        #     y = grids[g].get_y()
+        #     ax.plot(x,y,color='green')
+        #     plt.show()
+        # x = grids[g].get_x()
+        # y = grids[g].get_y()
+        # ax.plot(x,y,color='red')
+        plt.show()
+        def check_presence_inside(vm,vertex_set,C):
+            a = False
+            for p2 in vertex_set:
+                a = a or (p2[0]<vm[0] and p2[1]<vm[1] and p2[0]>C[0] and p2[1]>C[1])
+            return a
 
-        array = self.get_corner_points(array)
-
-        H,V = self.get_bipartite(array[::],self.main_arr)
-
-        remaining_edges = self.get_remaining_edge(array,self.main_arr,H,V)
-
-        remaining_edges = [edge.tolist() for edge in remaining_edges]
-
-        get_plot(array,graph)
-        get_plot(H,edge)
-        get_plot(V,edge)
-        get_plot(remaining_edges,edge)
-        plot_show()
-        
-        for edges in remaining_edges:
-            V.append(edges)
-
-        return array.tolist(),H,V,remaining_edges
-
-    def get_corner_points(self,array):
-        array = np.array(array)
-        done = 0
-        pts = len(array)-2
-        while not done:
-            if pts<len(array)-1:
-                this = array[pts]
-                pre = array[pts-1]
-                post = array[pts+1]
-
-                if (pre[0] == this[0] == post[0]) or (pre[1] == this[1] == post[1]):
-                    array = np.delete(array,pts,axis=0)
-            pts -= 1
-            if pts<1:
-                done = 1
-        return array
-    
-    def get_bipartite(self,coordinates,main_arr):
-        H_of_G = [[0,0]]
-        V_of_G = [[0,0]] 
-
-        action = [0,0,0,0]
-
-        angles = self.get_angle(coordinates)
-        coordinates_less_1 = coordinates[:-1]
-        coordinates_less_1_len = len(coordinates_less_1)
-
-        for i,point in enumerate(coordinates[:-1]):
-            x1 = coordinates[i+1][0]
-            y1 = coordinates[i+1][1]
-
-            x_dif = x1 - coordinates[i][0]
-            y_dif = y1 - coordinates[i][1]
-            arr = np.append(coordinates_less_1[i:],coordinates_less_1[:-(coordinates_less_1_len-(i))],axis=0)
-            arr1 = arr[1:]
-            arr2 = np.append([arr[-1]],arr[:-1],axis=0)
-            arr2 = arr2[1:]
-            angle_ = np.append(angles[i:],angles[:-(coordinates_less_1_len-(i))],axis=0)
-            angle_1 = angle_[1:]
-            angle_2 = np.append(angle_[-1],angle_[:-1])
-            angle_2 = angle_2[1:]
-
-            if y_dif >= 1:
-                action[up] = 1
-                temp1 = self.get_edge_bipartite(arr1,up,angle_1,main_arr)
-                temp2 = self.get_edge_bipartite(arr2,down,angle_2,main_arr)
-                if temp1 != None:
-                    V_of_G = np.append(V_of_G,temp1,axis=0)
-                elif temp2 != None:
-                    V_of_G = np.append(V_of_G,temp2,axis=0)
-            elif y_dif <= -1:
-                action[down] = 1
-                temp1 = self.get_edge_bipartite(arr1,down,angle_1,main_arr)
-                temp2 = self.get_edge_bipartite(arr2,up,angle_2,main_arr)
-                if temp1 != None:
-                    V_of_G = np.append(V_of_G,temp1,axis=0)
-                elif temp2 != None:
-                    V_of_G = np.append(V_of_G,temp2,axis=0)
-            elif x_dif >= 1:
-                action[right] = 1
-                temp1 = self.get_edge_bipartite(arr1,right,angle_1,main_arr)
-                temp2 = self.get_edge_bipartite(arr2,left,angle_2,main_arr)
-                if temp1 != None:
-                    H_of_G = np.append(H_of_G,temp1,axis=0)
-                elif temp2 != None:
-                    H_of_G = np.append(H_of_G,temp2,axis=0)
-            elif x_dif <= -1:
-                action[left] = 1
-                temp1 = self.get_edge_bipartite(arr1,left,angle_1,main_arr)
-                temp2 = self.get_edge_bipartite(arr2,right,angle_2,main_arr)
-                if temp1 != None:
-                    H_of_G = np.append(H_of_G,temp1,axis=0)
-                elif temp2 != None:
-                    H_of_G = np.append(H_of_G,temp2,axis=0)
-        H,V = self.unique_rows(H_of_G[1:]),self.unique_rows(V_of_G[1:])
-
-        H,V = self.get_absolute_bipartite(H,V)
-
-        return H,V
-     
-    def get_edge_bipartite(self,array,action,angle,main_arr):
-        x,y = array[0][0],array[0][1]
-        if action == up:
-            for i,elem in enumerate(array[1:]):
-                if elem[0] == x and elem[1] > y:
-                    if angle[i+1] == 1:
-                        if not self.get_obstacle(np.array(array),elem[0],elem[1],up,main_arr):
-                            x1 = x
-                            y1 = y
-                            x2 = elem[0]
-                            y2 = elem[1]
-                            return [[x1,y1],[x2,y2]]
-        elif action == right:
-            for i,elem in enumerate(array[1:]):
-                if elem[1] == y and elem[0] > x:
-                    if angle[i+1] == 1:
-                        if not self.get_obstacle(np.array(array),elem[0],elem[1],right,main_arr):
-                            x1 = x
-                            y1 = y
-                            x2 = elem[0]
-                            y2 = elem[1]
-                            return [[x1,y1],[x2,y2]]
-        elif action == down:
-            for i,elem in enumerate(array[1:]):
-                if elem[0] == x and elem[1] < y:
-                    if angle[i+1] == 1:
-                        if not self.get_obstacle(np.array(array),elem[0],elem[1],down,main_arr):
-                            x1 = x
-                            y1 = y
-                            x2 = elem[0]
-                            y2 = elem[1]
-                            return [[x1,y1],[x2,y2]]
-        elif action == left:
-            for i,elem in enumerate(array[1:]):
-                if elem[1] == y and elem[0] < x:
-                    if angle[i+1] == 1:
-                        if not self.get_obstacle(np.array(array),elem[0],elem[1],left,main_arr):
-                            x1 = x
-                            y1 = y
-                            x2 = elem[0]
-                            y2 = elem[1]
-                            return [[x1,y1],[x2,y2]]
-
-
-        return None
-    
-    def get_obstacle(self,array,x2,y2,action,main_arr):
-        obstacle = 0
-        x = array[0][0]
-        y = array[0][1]
-        
-        if action == up or action == down:
-            #y will be var
-            low = min(y,y2)
-            high = max(y,y2)
-            for j in range(low+1,high):
-                for i in main_arr[1:]:
-                    if np.array_equal(np.array([x,j]),np.array(i)):
-                        obstacle = 1
-                        
-                        break
-
-        if action == right or action == left:
-            low = min(x,x2)
-            high = max(x,x2)
-            for j in range(low+1,high):
-                for i in main_arr[1:]:
-                    if np.array_equal(np.array([j,y]),np.array(i)):
-                        obstacle = 1
-                        
-                        break
-        return obstacle
-    
-    def get_absolute_bipartite(self,H,V):
-        V_return = [[0,0]]
-        for i in range(0,len(V)-1,2):
-            high_V = max(V[i][1],V[i+1][1])
-            low_V = min(V[i][1],V[i+1][1])
-            V_x = V[i][0]
-            flag = 0
-            for j in range(0,len(H)-1,2):
-                high_H = max(H[j][0],H[j+1][0])
-                low_H = min(H[j][0],H[j+1][0])
-                H_y = H[j][1]
-
-                if H_y < high_V and H_y > low_V:
-
-                    if V_x < high_H and V_x > low_H:
-
-                        flag = 1
-            if flag == 0:
-                V_return = (np.append(V_return,[V[i],V[i+1]],axis=0)).tolist()
-        return H,list(V_return[1:])
-    
-    def get_remaining_edge(self,array,main_arr,H,V):
-        main_H = [[0,0]]
-        main_V = [[0,0]]
-        for i in range(0,len(H)-1,2):
-            low = min(H[i][0],H[i+1][0])
-            high = max(H[i][0],H[i+1][0])
-            
-            for j in range(low,high+1):
-                main_H = list(np.append(main_H,[[j,H[i][1]]],axis=0))
-        main_H = main_H[1:]
-        for i in range(0,len(V)-1,2):
-            low = min(V[i][1],V[i+1][1])
-            high = max(V[i][1],V[i+1][1])
-            
-            for j in range(low,high+1):
-                main_V = list(np.append(main_V,[[V[i][0],j]],axis=0))
-        main_V = main_V[1:]
-        
-        all_points = main_arr
-        if len(main_H) > 0:
-            all_points = list(np.append(all_points,main_H,axis=0))
-        if len(main_V) > 0:
-            all_points = list(np.append(all_points,main_V,axis=0))
-        
-        all_points = np.unique(all_points,axis=0)
-        
-        angles = self.get_angle(array)
-        
-        remaining_point = [[0,0]]
-        for i,elem in enumerate(array[:-1]):
-            edge_flag = 0
-            if angles[i] == 1:
+        rec_vertices = [grids[g].bl,grids[g].tl,grids[g].br]
+        min_x = min(np.array(rec_vertices)[:,0])
+        min_y = min(np.array(rec_vertices)[:,1])
+        max_x = max(np.array(rec_vertices)[:,0])
+        max_y = max(np.array(rec_vertices)[:,1])
+        g_h = g
+        g_v = g
+        g_v1 = g_v
+        g_h1 = g_h
+        while grids[g_h].r_nei!= None or grids[g_v].t_nei!= None:
+            changed = 0
+            if np.sum(marker)>0:
                 
-                for point in H:
-                    if np.array_equal(point,elem):
-                        edge_flag = 1
-                        break
-                if edge_flag == 0:
+                if grids[g_h].r_nei!= None:
                     
-                    for point in V:
-                        if np.array_equal(point,elem):
-                            edge_flag = 1
-                            break
-                if edge_flag == 0:
-                    remaining_point = list(np.append(remaining_point,[elem],axis=0))
+                    g_h = grids[g_h].r_nei
                     
-        remaining_point = remaining_point[1:]
-        extra_edge = [[0,0]]
+                    rec_vertices.append(grids[g_h].br)
+                    max_x = max(np.array(rec_vertices)[:,0])
+                    max_y = max(np.array(rec_vertices)[:,1])
+                    if not check_presence_inside(np.array([max_x,max_y]),vertex_set,np.array([min_x,min_y])):
+                        # g_v1 = g_v
+                        g_h1 = g_h
+                        changed = 1
 
-        for point in remaining_point:
-#             print(remaining_point)
-#             print(extra_edge)
-            action = -1
-            for i,elem in enumerate(main_arr):
-
-                if np.array_equal(point,elem) and (i+1)<len(main_arr):
-                    pre = main_arr[i-1]
-                    # Getting error here array size error
-                    post = main_arr[i+1]
-                    if pre[1] < elem[1]:
-                        action = up
-                        break
-                    elif pre[1] > elem[1]:
-                        action = down
-                        break
-                    elif pre[1] == elem[1]:
-                        if post[1] > elem[1]:
-                            action = down
-                        else:
-                            action = up
-
-            if action == up:
-                extra_edge = np.append(extra_edge,[point],axis=0)
-                yi = point[1]
-                xi = point[0]
-                exit = 0
-                while(1):
-                    yi+=1
-                    #print(yi)
-                    for j in all_points:
-                        if np.array_equal(j,[xi,yi]):
-
-                            extra_edge = np.append(extra_edge,[j],axis=0)
-                            exit = 1
-                            break
-                        else:
-                            pass
-                    if exit == 1:
-                        break
-
-            if action == down:
-                extra_edge = np.append(extra_edge,[point],axis=0)
-                yi = point[1]
-                xi = point[0]
-                exit = 0
-                while(1):
-                    yi-=1
-                    #print(xi,yi)
-                    for j in all_points:
-                        if np.array_equal(j,[xi,yi]):
-
-                            extra_edge = np.append(extra_edge,[j],axis=0)
-                            exit = 1
-                            break
-                        else:
-                            pass
-                    if exit == 1:
-                        break
-
-        extra_edge = extra_edge[1:]
-        return list(extra_edge)
-
-    def unique_rows(self,a):
-        #print(a)
-        for i in range(len(a)):
-            for j in range(i):
-                if np.array_equal(a[j],a[i]):
-
-                    a[i]=[-1,-1]
-                    #print(a)
-                    break
-        return_a = [elem.tolist() for i,elem in enumerate(a) if not np.array_equal([-1,-1],elem)]
-        #print('final_a',return_a)
-        return return_a
-
-    def get_angle(self,array):
-        past_action = None
-        post_action = None
-        angle = np.zeros(len(array)-1)
-        action = np.array([0,0])
-
-        for i,point in enumerate(array[:-1]):
-
-            if i == 0:
-                past_point = array[-2]
-                cur_point = array[0]
-                post_point = array[1]
+                    # x = grids[g_h].get_x()
+                    # y = grids[g_h].get_y()
+                    # ax.plot(x,y,color='pink')
+                    # plt.show()
+                    
+                if grids[g_v].t_nei!= None:
+                    
+                    g_v = grids[g_v].t_nei
+                    rec_vertices.append(grids[g_v].tl)
+                    max_x = max(np.array(rec_vertices)[:,0])
+                    max_y = max(np.array(rec_vertices)[:,1])
+                    if not check_presence_inside(np.array([max_x,max_y]),vertex_set,np.array([min_x,min_y])):
+                        g_v1 = g_v
+                        # g_h1 = g_h
+                        changed = 1
+                    # x = grids[g_v].get_x()
+                    # y = grids[g_v].get_y()
+                    # ax.plot(x,y,color='pink')
+                    # plt.show()
+                    
             else:
-                past_point = array[i-1]
-                cur_point = array[i]
-                post_point = array[i+1] 
-
-            x_dif = -(past_point[0] - cur_point[0])
-            y_dif = -(past_point[1] - cur_point[1])
-            if x_dif >= 1:
-                action[0] = right
-            elif x_dif <= -1:
-                action[0] = left
-            elif y_dif >= 1:
-                action[0] = up
-            elif y_dif <= -1:
-                action[0] = down
-
-            x_dif = -(cur_point[0] - post_point[0])
-            y_dif = -(cur_point[1] - post_point[1])
-            if x_dif >= 1:
-                action[1] = right
-            elif x_dif <= -1:
-                action[1] = left
-            elif y_dif >= 1:
-                action[1] = up
-            elif y_dif <= -1:
-                action[1] = down
-
-            if (action[0]==right and action[1]==down) or (action[0]==left and action[1]==up) or (action[0]==down and action[1]==left) or (action[0]==up and action[1]==right):
-                angle[i] = concave
-            else:
-                angle[i] = convex
-
-        return angle
-
-def get_complete_edges(graph,H,V,remaining_edges):
-    for i,point in enumerate(remaining_edges):
-    
-      if i % 2 == 1 : 
-        x = point[0]
-        y = point[1]
-        flag = 0
-
-        pre_x = graph[0][0]
-        pre_y = graph[0][1]
-        for j,coord in enumerate(graph[1:-1]):
-            post_x = coord[0]
-            post_y = coord[1]
-
-            if y == pre_y == post_y:
-                if min(pre_x,post_x) < x and max(pre_x,post_x) > x:
-                    graph.insert(j+1,[x,y])
-                    flag = 1
-
-            pre_x = coord[0]
-            pre_y = coord[1]
-
-          
-
-        if flag == 0:
-            for j,coord in enumerate(H):
-
-                if j % 2 == 1:
-                    pre_x = H[j-1][0]
-                    post_x = coord[0]
-
-                    curr_y = coord[1]
-
-                    if min(pre_x,post_x) < x and max(pre_x,post_x) > x and curr_y == y:
-                        H.insert(j,[x,y])
-
-    return graph,H
-
-class neighbour:
-    
-    def __init__(self,vertex):
-        self.vertex = vertex
-        self.north = [-1,-1]
-        self.east = [-1,-1]
-        self.south = [-1,-1]
-        self.west = [-1,-1]
-        
-    def neighbours(self,north,east,south,west):
-        self.north = north
-        self.east = east
-        self.south = south
-        self.west = west
-
-def get_decomposed_squares(graph,H,V):
-    
-    class my_dictionary(dict): 
-  
-    # __init__ function 
-        def __init__(self): 
-            self = dict() 
-
-        # Function to add key:value 
-        def add(self, key, value): 
-            self[key] = value 
-            print(key)
-
-    dict_obj = my_dictionary() 
-    
-    for i,elem in enumerate(graph):
-
-        node = get_neighbour(elem,graph,H,V)
-        
-        dict_obj.add(str(elem),node)
-
-    x_max = max([elem[0] for elem in graph])
-    
-    array = [[]]
-    for i in range(x_max+1):
-        
-        array.append([elem for elem in graph[:-1] if elem[0]==i])
-        array[i+1] = (np.sort(array[i+1],axis=0)).tolist()
-        
-    array = array[1:]
-    turn = first
-    squares = [[]]
-    print('----')
-    for whole in array:
-        turn = first
-        for i,elem in enumerate(whole):
-            if elem[0] == x_max:
+                rec_vertices = grids[g].get_corners()
+                rec_vertices = np.concatenate((rec_vertices,np.array([rec_vertices[0]])),axis=0)
+            if not changed:
                 break
-            
-            #elif dict_obj[str(elem)].north[0] != -1 and turn == first:
-                #pass
-            
-            elif turn == first:
-                elem1 = elem
-                turn = second
-                print(elem,' first')
-                
-            elif turn == second:
-                print(elem,' second')
-                if not np.array_equal(dict_obj[str(elem)].east,[-1,-1]):
-                    x = -1
-                    elem3 = cp.copy(elem)
-                    elem4 = cp.copy(elem1)
-                    flag = False
-                    print(elem3,' elem3 ',elem4,' elem4')
-                    while((not np.array_equal(dict_obj[str(elem3)].east,[-1,-1]))):
-                        elem3 = dict_obj[str(elem3)].east
-                        x = elem3[0]
-                        if (not np.array_equal(dict_obj[str(elem3)].south,[-1,-1])):
-                            flag = True
-                            break
-                    print('count ',x)
-                    while(x!=elem4[0] and flag != False):
-                        print(elem4)
-                        if np.array_equal(dict_obj[str(elem4)].east,[-1,-1]):
-                            flag = False
-                            break
-                        else:
-                            elem4 = dict_obj[str(elem4)].east
-                    #elem4 = dict_obj[str(elem4)].east
-                    
-                    #elem4 = dict_obj[str(elem4)].east
-                    
-                    if flag == True:
-                        coord = [elem1,elem,elem3,elem4]
-                        squares.append(coord)
-                        print('squares ',squares)
-                    
-                    if not np.array_equal(dict_obj[str(elem)].north,[-1,-1]):
-                        elem1 = elem
-                    else:
-                        turn = first
-                else:
-                    pass
-    print(squares[1:])
-    return squares[1:]
-    
-def get_neighbour(vertex,graph,H,V):
-    
-    node = neighbour(vertex)
-        
-    temp = np.append([graph[-2]],graph,axis=0)
-    for i,elem in enumerate(graph[:-1]):
+        # if grids[g_h].l_nei == None:
+        #     max_x = grids[g_h].br[0]
+        # else:
+        #     max_x = grids[grids[g_h].l_nei].br[0]
+        max_x = grids[g_h1].br[0]
+        # if grids[g_v].b_nei == None:
+        #     max_y = grids[g_v].tl[0]
+        # else:
+        #     max_y = grids[grids[g_v].b_nei].tl[1]
+        max_y = grids[g_v1].tl[1]#max(np.array(rec_vertices)[:,1])
 
-        if np.array_equal(elem,vertex):
-            pre = [temp[i][0],temp[i][1]]
-            post = [temp[i+2][0],temp[i+2][1]]
-            
+        rectangles.append(Grid(tl=np.array([min_x,max_y]),bl=np.array([min_x,min_y]),tr=np.array([max_x,max_y]),br=np.array([max_x,min_y])))
+        delete_these = []
+        for g in grids:
+            x = grids[g].get_x()
+            y = grids[g].get_y()
+            # for r in rectangles:
+            if min(x) >= min(rectangles[-1].get_x()) and max(x) <= max(rectangles[-1].get_x()) and min(y) >= min(rectangles[-1].get_y()) and max(y) <= max(rectangles[-1].get_y()):
+                if grids[g].t_nei != None:
+                    grids[grids[g].t_nei].b_nei = None
+                if grids[g].b_nei != None:
+                    grids[grids[g].b_nei].t_nei = None
+                if grids[g].r_nei != None:
+                    grids[grids[g].r_nei].l_nei = None
+                if grids[g].l_nei != None:
+                    grids[grids[g].l_nei].r_nei = None
+                delete_these.append(g)
+        for gg in delete_these:
+            del grids[gg]
 
-            dif_pre_x,dif_pre_y = elem[0] - pre[0],elem[1] - pre[1]
-            dif_post_x,dif_post_y = post[0] - elem[0], post[1] - elem[1]
-            
-            #print(dif_pre_x,dif_pre_y,dif_post_x,dif_post_y,pre,post)
-
-            if dif_pre_x != 0 :
-                if dif_pre_x < 0: 
-                    node.east = pre 
-                else:
-                    node.west = pre
-                    
-            elif dif_pre_y != 0:
-                if dif_pre_y < 0:
-                    node.north = pre 
-                else:
-                    node.south = pre
-
-            if dif_post_x != 0 :
-                if dif_post_x < 0:
-                    node.west = post
-                else:
-                    node.east = post
-                    
-            elif dif_post_y != 0:
-                if dif_post_y < 0:
-                    node.south = post
-                else: 
-                    node.north = post
-
-    for i,elem in enumerate(H):
-        
-        if np.array_equal(elem,vertex) and i+1<len(H):
-            ind = i % 2
-            
-            if ind == 1:
-                temp = H[i-1] 
-            else:
-                temp = H[i+1]
-            
-            if temp[0] < vertex[0]:
-                node.west = temp
-            else:
-                node.east = temp
-                
-    for i,elem in enumerate(V):
-        
-        if np.array_equal(elem,vertex) and i+1<len(V):
-            ind = i % 2
-            
-            if ind == 1:
-                temp = V[i-1] 
-            else:
-                temp = V[i+1]
-            
-            if temp[1] < vertex[1]:
-                node.south = temp
-            else:
-                node.north = temp     
-                
-    return node
-
+        ax.plot(rectangles[-1].get_x(),rectangles[-1].get_y())
+        plt.show()
+    return rectangles
 
 #   Spacefilling curves
-
 def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax):
     #assume points convention (0,0),(1,0),(1,1),(0,1)
 
@@ -1577,10 +1113,6 @@ def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax):
 
             x_center,y_center = np.append(x_center,x_cen),np.append(y_center,y_cen)
 
-            # ax.plot(x_temp,y_temp,color='black')
-        
-    # ax.scatter(x_center,y_center,c='green',s=10)
-    
     rectangular_hilbert_curves = get_space_fill_graph(x_center[0],y_center[0],x_center[-1],y_center[-1],inner_grid_height,inner_grid_width,ax)
 
     return [x_center,y_center], rectangular_hilbert_curves
@@ -1666,45 +1198,61 @@ def get_space_fill_graph(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax):
 
     return [x,y]
 
+static_intruder = 1
+if static_intruder:
+    fig,ax = plt.subplots()
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
 
-#   Decomposition
-up = 0
-right = 1
-down = 2
-left = 3
-convex = 0
-concave = 1
-graph = 0
-edge = 1
-first = 1
-second = 2
+    rectangles_nodes = get_rectangles(grids,get_area_vertices(boundary),ax)
 
-D = decomposition()
-fig,ax = plt.subplots()
-array,grids = Inflate_Cut_algorithm(10,ax)
+    rectangles = []
+    for r in rectangles_nodes:
+        rectangles.append(r.get_corners())
 
-plt.pause(5)
+    plt.pause(1)
+    k_max = 0
+    for r in rectangles:
+        dg , hsc = make_grid(min(np.array(r)[:,0]),min(np.array(r)[:,1]),max(np.array(r)[:,0]),max(np.array(r)[:,1]),1,1,ax)
+        k_max += len(dg[0])
+    
+    plt.show()
+    plt.pause(1)
+    time = []
+    optimal_k = []
+    for t in range(1,k_max+1):
+        optimal_searcher = []
+        for k in range(k_max,0,-1):
+            if k_max/k - t == 0.0:
+                optimal_searcher.append(k)
 
-get_plot(array,graph)
-
-graph,H,V,remaining_edges = D.get_decomposed_graph(array)
-
-graph,H = get_complete_edges(graph,H,V,remaining_edges)
-
-rectangles = get_decomposed_squares(graph,H,V)
-# plt.ioff()
-plt.pause(5)
-
-if __name__ == "__main__":
+        if len(optimal_searcher)!=0:
+            time.append(t)
+            optimal_k.append(min(optimal_searcher))
     plt.ioff()
+    fig,ax = plt.subplots()
+    ax.plot(time,optimal_k)
+    plt.show()
+
+dynamic_intruder = 0
+if dynamic_intruder:
     for runs in range(10):
+        fig,ax = plt.subplots()
+        boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
+
+        rectangles_nodes = get_rectangles(grids,get_area_vertices(boundary),ax)
+
+        rectangles = []
+        for r in rectangles_nodes:
+            rectangles.append(r.get_corners())
+
+        plt.pause(1)
         k_max = 0
         for r in rectangles:
-            dg , hsc = make_grid(r[0][0],r[0][1],r[2][0],r[1][1],1,1,ax)
+            dg , hsc = make_grid(min(np.array(r)[:,0]),min(np.array(r)[:,1]),max(np.array(r)[:,0]),max(np.array(r)[:,1]),1,1,ax)
             k_max += len(dg[0])
-
         
         plt.show()
+        plt.pause(1)
         time = []
         optimal_k = []
         for t in range(1,k_max+1):
@@ -1716,6 +1264,7 @@ if __name__ == "__main__":
             if len(optimal_searcher)!=0:
                 time.append(t)
                 optimal_k.append(min(optimal_searcher))
+        plt.ioff()
         fig,ax = plt.subplots()
         ax.plot(time,optimal_k)
         plt.show()
