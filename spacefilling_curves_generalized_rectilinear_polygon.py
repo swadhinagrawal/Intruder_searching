@@ -1,12 +1,8 @@
 #   Authors: Aayush Gohil, Swadhin Agrawal
 
-from array import array
-from cmath import rect
-from curses.textpad import rectangle
 import numpy as np
 import matplotlib.pyplot as plt
 import copy as cp
-import random
 
 # Random simple rectilinear polygon generator
 class Node:

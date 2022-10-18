@@ -1,4 +1,5 @@
-from audioop import avg
+#   Authors: Swadhin Agrawal
+
 import matplotlib.pyplot as plt
 import numpy as np
 import faulthandler
@@ -1298,7 +1299,7 @@ if dynamic_intruder:
     fig,ax = plt.subplots()
     fig1,ax1 = plt.subplots()
     faulthandler.enable()
-    for num_robots in range(1,25,1):
+    for num_robots in range(1,10,1):
         avg_time = []
         for runs in range(10):
             t = 0   #   Initialize time
