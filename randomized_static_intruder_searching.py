@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import faulthandler
 import copy as cp
+import pickle as pkl
 
 # Random simple rectilinear polygon generator
 
@@ -1145,12 +1146,12 @@ def update_prob_costs(grids,present_locs,arena_h,arena_w):
             loc = np.array([row,col])
             for l in present_locs:
                 if np.linalg.norm(loc-np.array(l))==0:
-                    grids[loc[0],loc[1]].probability -= 1/(arena_h*arena_w)
+                    grids[loc[0],loc[1]].probability -= 0#1/(arena_h*arena_w)
                     if grids[loc[0],loc[1]].probability<0:
                         grids[loc[0],loc[1]].probability=0
                     grids[loc[0],loc[1]].cost += 1/(arena_h*arena_w)
                 else:
-                    grids[loc[0],loc[1]].probability += 1/(arena_h*arena_w*len(present_locs))
+                    grids[loc[0],loc[1]].probability += 0#1/(arena_h*arena_w*len(present_locs))
 
 def plot_mesh(fig,ax,arena_w,arena_h,grid,title,without_bar=0):
     grid = np.round(np.array(grid).astype(float),decimals=4)
@@ -1279,7 +1280,9 @@ if static_intruder:
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
 
-
+    fileObject = open('data_static_intruder', 'wb')
+    pkl.dump(np.array(time),fileObject)
+    pkl.dump(np.array(agents),fileObject)
     plt.ioff()
     fig,ax = plt.subplots()
     ax.plot(time,agents)
@@ -1392,7 +1395,10 @@ if dynamic_intruder:
             avg_time.append(t)
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
-
+    
+    fileObject = open('data_dynamic_intruder', 'wb')
+    pkl.dump(np.array(time),fileObject)
+    pkl.dump(np.array(agents),fileObject)
     plt.ioff()
     fig,ax = plt.subplots()
     ax.plot(time,agents)
@@ -1400,5 +1406,3 @@ if dynamic_intruder:
     ax.set_ylabel("Number of search agents")
     plt.savefig('dynamic_intruder.eps')
     plt.show()
-
-

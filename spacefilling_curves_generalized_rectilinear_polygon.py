@@ -33,7 +33,11 @@ class Grid:
         self.tr = tr
         self.br = br
         
+        self.path_pre = None
+        self.path_post = None
         self.centroid = (self.tl+self.bl+self.tr+self.br)/4.0
+
+        self.robot_home = False
     
     def get_centroid(self):
         self.centroid = (self.tl+self.bl+self.tr+self.br)/4.0
@@ -313,7 +317,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
         # plt.show()
         # ax.clear()
         if ax is not None:
-            ax.plot(boundary[:,0],boundary[:,1],color = 'black')
+            ax.plot(boundary[:,0],boundary[:,1])
             # ax.scatter(boundary[:,0],boundary[:,1],color = 'black')
             plt.show()
         return boundary, edges, start_edge, end_edge
@@ -921,7 +925,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
         polygon_boundary(P,ax1)
         r -= 1
     boundary,edges,start_edge,end_edge = polygon_boundary(P,ax)
-    return boundary,edges,start_edge,end_edge , P
+    return boundary,edges,start_edge,end_edge,P
 
 # Decomposition
 
@@ -1066,52 +1070,36 @@ def get_rectangles(p,vertex_set,ax):
         for gg in delete_these:
             del grids[gg]
 
-        ax.plot(rectangles[-1].get_x(),rectangles[-1].get_y())
-        plt.show()
+        # ax.plot(rectangles[-1].get_x(),rectangles[-1].get_y())
+        # plt.show()
     return rectangles
 
 #   Spacefilling curves
-def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax):
-    #assume points convention (0,0),(1,0),(1,1),(0,1)
+def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax,grid_graph):
 
-    x_center,y_center = [],[]
+    centroids = []
+    for i in range(x1,x2,inner_grid_width):
+        for j in range(y1,y2,inner_grid_height):
+            grid_graph.update({str([i,j]):Grid(tl=np.array([i,j+inner_grid_height]),tr=np.array([i+inner_grid_width,j+inner_grid_height]),bl=np.array([i,j]),br=np.array([i+inner_grid_width,j]))})
+            centroids.append(grid_graph[str([i,j])].centroid)
+            if i-inner_grid_width>=x1:
+                grid_graph[str([i,j])].l_nei = str([i-inner_grid_width,j])
+            if i+inner_grid_width<=x2:
+                grid_graph[str([i,j])].r_nei = str([i+inner_grid_width,j])
+            if j-inner_grid_height>=y1:
+                grid_graph[str([i,j])].b_nei = str([i,j-inner_grid_height])
+            if j+inner_grid_height<=y2:
+                grid_graph[str([i,j])].t_nei = str([i,j+inner_grid_height])
 
-    width = x2-x1
-    height = y2-y1
+    rectangular_hilbert_curves = get_space_fill_graph(centroids[0][0],centroids[0][1],centroids[-1][0],centroids[-1][1],inner_grid_height,inner_grid_width,ax)
 
-
-    hor_patch = [ x1 + i*inner_grid_width for i in range((width//inner_grid_width))]
-    ver_patch = [ y1 + i*inner_grid_height for i in range((height//inner_grid_height))]
-
-    print(hor_patch)
-    print(ver_patch)
-
-    for i,row in enumerate(hor_patch):
-        for j,column in enumerate(ver_patch):
-
-            x_scalar,y_scalar = row,column
-            x_temp,y_temp =  row,column
-
-            x_scalar,y_scalar = x_scalar+inner_grid_width,y_scalar
-            x_temp,y_temp = np.append(x_temp,x_scalar),np.append(y_temp,y_scalar)
-
-            x_scalar,y_scalar = x_scalar,y_scalar+inner_grid_height
-            x_temp,y_temp = np.append(x_temp,x_scalar),np.append(y_temp,y_scalar)
-
-            x_scalar,y_scalar = x_scalar-inner_grid_width,y_scalar
-            x_temp,y_temp = np.append(x_temp,x_scalar),np.append(y_temp,y_scalar)
-
-            x_scalar,y_scalar = x_scalar,y_scalar-inner_grid_height
-            x_temp,y_temp = np.append(x_temp,x_scalar),np.append(y_temp,y_scalar)
-
-            string = ("({},{})".format(row+(inner_grid_width//2),column+(inner_grid_height//2)))
-            x_cen,y_cen = row+(inner_grid_width/2),column+(inner_grid_height/2)
-
-            x_center,y_center = np.append(x_center,x_cen),np.append(y_center,y_cen)
-
-    rectangular_hilbert_curves = get_space_fill_graph(x_center[0],y_center[0],x_center[-1],y_center[-1],inner_grid_height,inner_grid_width,ax)
-
-    return [x_center,y_center], rectangular_hilbert_curves
+    for i in range(len(rectangular_hilbert_curves[0])):
+        if i-1>=0:
+            grid_graph[str([int(rectangular_hilbert_curves[0][i] - inner_grid_width/2), int(rectangular_hilbert_curves[1][i] - inner_grid_height/2)])].path_pre = str([int(rectangular_hilbert_curves[0][i-1] - inner_grid_width/2), int(rectangular_hilbert_curves[1][i-1] - inner_grid_height/2)])
+        if i+1 < len(rectangular_hilbert_curves):
+            grid_graph[str([int(rectangular_hilbert_curves[0][i] - inner_grid_width/2), int(rectangular_hilbert_curves[1][i] - inner_grid_height/2)])].path_post = str([int(rectangular_hilbert_curves[0][i+1] - inner_grid_width/2), int(rectangular_hilbert_curves[1][i+1] - inner_grid_height/2)])
+    
+    return grid_graph,centroids,rectangular_hilbert_curves
 
 def gilbert2d(width, height):
     """
@@ -1182,19 +1170,51 @@ def get_space_fill_graph(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax):
     height = (abs(y2-y1)//inner_grid_height) + 1
     width = (abs(x2-x1)//inner_grid_width) + 1
 
-    print("height : ",height)
-    print("weight : ",width)
+    # print("height : ",height)
+    # print("weight : ",width)
 
-    x_arr = [ x*inner_grid_width for x, y in gilbert2d(width, height)]
-    y_arr = [ y*inner_grid_height for x, y in gilbert2d(width, height)]
+    x_arr = [x*inner_grid_width for x, y in gilbert2d(width, height)]
+    y_arr = [y*inner_grid_height for x, y in gilbert2d(width, height)]
 
     x,y = x_arr + x1,y_arr + y1 
-
-    ax.plot(x,y,color='red',linewidth = 2)
+    
+    ax.plot(x,y,linewidth = 1,alpha=0.3)
 
     return [x,y]
 
-static_intruder = 1
+class Robot:
+    def __init__(self,id,r_type):
+        self.id = id
+        self.type = r_type
+        self.present_loc = None
+        self.past_loc = None
+        self.next_loc = None
+        self.body = None
+
+def intruder_(grids,ax):
+    intruder = Robot(-1,'i')
+    intruder.present_loc = list(grids.items())[np.random.randint(len(grids))][0]
+    intru = ax.scatter([grids[intruder.present_loc].centroid[0]],[grids[intruder.present_loc].centroid[1]],color='red',s=25)
+    ax.add_artist(intru)
+    return intruder
+
+def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
+    robots = [] #   Spawn Robots
+    for r in range(len(num_grids_per_rectangle)):
+        start = int(np.sum(num_grids_per_rectangle[:r]))
+        end = start + np.round(num_robots*num_grids_per_rectangle[r]/len(grids))
+        counter = 0
+        for i in range(int(start),int(end)):
+            robots.append(Robot(len(robots)+1,'s'))
+            loc = int(i+counter*num_grids_per_rectangle[r]/(end-start))
+            robots[len(robots)-1].present_loc = str([int(hsc[0,loc]-grid_width/2),int(hsc[1,loc]-grid_height/2)])
+            grids[robots[len(robots)-1].present_loc].robot_home = True
+            robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='slateblue',s=25)
+            ax.add_artist(robots[len(robots)-1].body)
+            counter += 1
+    return robots
+
+static_intruder = 0
 if static_intruder:
     fig,ax = plt.subplots()
     boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
@@ -1207,9 +1227,13 @@ if static_intruder:
 
     plt.pause(1)
     k_max = 0
+    grid_graph = {}
+    HSC = np.array([[],[]])
     for r in rectangles:
-        dg , hsc = make_grid(min(np.array(r)[:,0]),min(np.array(r)[:,1]),max(np.array(r)[:,0]),max(np.array(r)[:,1]),1,1,ax)
-        k_max += len(dg[0])
+        grid_graph,centroids, hsc = make_grid(min(np.array(r)[:,0]),min(np.array(r)[:,1]),max(np.array(r)[:,0]),max(np.array(r)[:,1]),1,1,ax,grid_graph)
+        k_max += len(centroids)
+        # area_reactangles.append(len(centroids))
+        HSC = np.concatenate((HSC,hsc),axis=1)
     
     plt.show()
     plt.pause(1)
@@ -1229,8 +1253,9 @@ if static_intruder:
     ax.plot(time,optimal_k)
     plt.show()
 
-dynamic_intruder = 0
+dynamic_intruder = 1
 if dynamic_intruder:
+    performance = []
     for runs in range(10):
         fig,ax = plt.subplots()
         boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
@@ -1243,27 +1268,33 @@ if dynamic_intruder:
 
         plt.pause(1)
         k_max = 0
+        grid_graph = {}
+        HSC = np.array([[],[]])
+        area_reactangles = []
         for r in rectangles:
-            dg , hsc = make_grid(min(np.array(r)[:,0]),min(np.array(r)[:,1]),max(np.array(r)[:,0]),max(np.array(r)[:,1]),1,1,ax)
-            k_max += len(dg[0])
-        
+            grid_graph,centroids, hsc = make_grid(min(np.array(r)[:,0]),min(np.array(r)[:,1]),max(np.array(r)[:,0]),max(np.array(r)[:,1]),1,1,ax,grid_graph)
+
+            k_max += len(centroids)
+            area_reactangles.append(len(centroids))
+            HSC = np.concatenate((HSC,hsc),axis=1)
+
         plt.show()
         plt.pause(1)
-        time = []
-        optimal_k = []
-        for t in range(1,k_max+1):
-            optimal_searcher = []
-            for k in range(k_max,0,-1):
-                if k_max/k - t == 0.0:
-                    optimal_searcher.append(k)
 
-            if len(optimal_searcher)!=0:
-                time.append(t)
-                optimal_k.append(min(optimal_searcher))
-        plt.ioff()
-        fig,ax = plt.subplots()
-        ax.plot(time,optimal_k)
-        plt.show()
-        
+        intruder = intruder_(grid_graph,ax)
+        robots = searchers(50,grid_graph,area_reactangles,HSC,1,1,ax)
+        # searchers_time_num = {}#    key = searcher number
+        # for k in range(k_max,0,-1):
+        #     robots = searchers(k,grid_graph,area_reactangles,HSC,1,1,ax)
+        #     intruder_found_state = False
+        #     for t in range(1,k_max+1):
+        #         for rb in robots:
+        #             pass
+        #         if intruder_found_state:
+        #             searchers_time_num[k] = t
+        #             break
+        #         elif not intruder_found_state and t == k_max:
+        #             searchers_time_num[k] = t
+        # performance.append([grid_graph,searchers_time_num])
         
             
