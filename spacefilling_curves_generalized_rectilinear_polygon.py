@@ -1469,9 +1469,6 @@ if dynamic_intruder:
                             if grid_graph[rb.present_loc].path_pre!= None:
                                 rb.present_loc = grid_graph[rb.present_loc].path_pre
                         rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
-                        
-                        # rb.body.remove()
-                        # rb.body = ax.scatter([grid_graph[rb.present_loc].centroid[0]],[grid_graph[rb.present_loc].centroid[1]],color='green',s=2)
                 plt.show()
                 plt.pause(0.01)
                 t += 1
