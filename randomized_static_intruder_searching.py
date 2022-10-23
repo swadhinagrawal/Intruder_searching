@@ -1175,7 +1175,7 @@ def plot_mesh(fig,ax,arena_w,arena_h,grid,title,without_bar=0):
 
 
 # Generalize these for generic rectilinear simple polygon
-static_intruder = 1
+static_intruder = 0
 if static_intruder:
     arena_w = 10
     arena_h = 10
