@@ -2,59 +2,85 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
-import faulthandler
 import copy as cp
 import pickle as pkl
+np.random.seed(748657)
 
 # Random simple rectilinear polygon generator
+
+class Edge:
+    def __init__(self,l,r):
+        self.l_nei = None
+        self.r_nei = None
+
+        self.l = l
+        self.r = r
+    
+    def get_loop(self,edges):
+        boundary = np.array([self.r])
+        if self.r_nei != None:
+            boundary = np.concatenate((boundary, edges[self.r_nei].get_loop(edges)),axis=0)
+        else:
+            return boundary
+        return boundary
+
+class Grid:
+    def __init__(self,tl,bl,tr,br):
+        self.l_nei = None
+        self.t_nei = None
+        self.r_nei = None
+        self.b_nei = None
+
+        self.tl = tl
+        self.bl = bl
+        self.tr = tr
+        self.br = br
+        
+        self.sfc_path_pre = None
+        self.sfc_path_post = None
+        self.centroid = (self.tl+self.bl+self.tr+self.br)/4.0
+
+        self.robot_home = False
+        self.passage = 0
+        self.passage_l = 0
+        self.passage_r = 0
+        self.passage_t = 0
+        self.passage_b = 0
+
+        self.rectangle_num = None
+
+        self.chance_of_intruder = 1
+        self.cost_of_traversal = -np.Inf
+
+        self.heuristics = 0#np.random.uniform(0,0.1)
+        self.heuristics_2 = 0
+        self.distance = 0
+        self.total_cost = 0
+
+        self.robo_path_pre = None
+
+        self.height = None
+        self.width = None
+
+        self.body = None
+    
+    def get_centroid(self):
+        self.centroid = (self.tl+self.bl+self.tr+self.br)/4.0
+
+    def get_x(self):
+        return np.array([self.bl[0],self.br[0],self.tr[0],self.tl[0],self.bl[0]])
+
+    def get_y(self):
+        return np.array([self.bl[1],self.br[1],self.tr[1],self.tl[1],self.bl[1]])
+
+    def get_corners(self):
+        return np.array([self.bl,self.br,self.tr,self.tl])
 
 def Inflate_Cut_algorithm(num_vertices,ax=None):
     '''
     Input: Num_vertices (Must be even and >=4)
     Returns: Array of vertices forming the random simple rectilinear region
     '''
-    class Node:
-        def __init__(self,l,r):
-            self.l_nei = None
-            self.r_nei = None
-
-            self.l = l
-            self.r = r
-        
-        def get_loop(self,edges):
-            boundary = np.array([self.r])
-            if self.r_nei != None:
-                boundary = np.concatenate((boundary, edges[self.r_nei].get_loop(edges)),axis=0)
-            else:
-                return boundary
-            return boundary
-
-    class Grid:
-        def __init__(self,tl,bl,tr,br):
-            self.l_nei = None
-            self.t_nei = None
-            self.r_nei = None
-            self.b_nei = None
-
-            self.tl = tl
-            self.bl = bl
-            self.tr = tr
-            self.br = br
-            
-            self.centroid = (self.tl+self.bl+self.tr+self.br)/4.0
-        
-        def get_centroid(self):
-            self.centroid = (self.tl+self.bl+self.tr+self.br)/4.0
-
-        def get_x(self):
-            return np.array([self.bl[0],self.br[0],self.tr[0],self.tl[0],self.bl[0]])
-
-        def get_y(self):
-            return np.array([self.bl[1],self.br[1],self.tr[1],self.tl[1],self.bl[1]])
-
-        def get_corners(self):
-            return np.array([self.bl,self.br,self.tr,self.tl])
-
     def polygon_boundary(cells,ax):
         def get_edge(cell,side,one_vertex = 1):
             if side == 't':
@@ -142,7 +168,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                         if len(edges) == 0:
                             start_edge = str(len(edges))
                             end_edge = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                         else:
                             for e in [start_edge,end_edge]:
                                 ll = np.linalg.norm(np.array(edge[0])-edges[e].l)
@@ -152,25 +178,25 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                                 if ll == 0:
                                     start_edge = str(len(edges))
                                     edges[e].l_nei = str(len(edges))
-                                    edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                    edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                                     edges[str(len(edges)-1)].r_nei = e
                                     break
                                 elif lr == 0:
                                     end_edge = str(len(edges))
                                     edges[e].r_nei = str(len(edges))
-                                    edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                    edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                                     edges[str(len(edges)-1)].l_nei = e
                                     break
                                 elif rl == 0:
                                     start_edge = str(len(edges))
                                     edges[e].l_nei = str(len(edges))
-                                    edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                    edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                                     edges[str(len(edges)-1)].r_nei = e
                                     break
                                 elif rr == 0:
                                     end_edge = str(len(edges))
                                     edges[e].r_nei = str(len(edges))
-                                    edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                    edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                                     edges[str(len(edges)-1)].l_nei = e
                                     break
                                 elif e == end_edge and ll!=0 and rl!=0 and lr!=0 and rr!=0:
@@ -188,28 +214,28 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                             if ll == 0:
                                 start_edge = str(len(edges))
                                 edges[e].l_nei = str(len(edges))
-                                edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                                 edges[str(len(edges)-1)].r_nei = e
                                 del backup[i]
                                 break
                             elif lr == 0:
                                 end_edge = str(len(edges))
                                 edges[e].r_nei = str(len(edges))
-                                edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                                 edges[str(len(edges)-1)].l_nei = e
                                 del backup[i]
                                 break
                             elif rl == 0:
                                 start_edge = str(len(edges))
                                 edges[e].l_nei = str(len(edges))
-                                edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                                 edges[str(len(edges)-1)].r_nei = e
                                 del backup[i]
                                 break
                             elif rr == 0:
                                 end_edge = str(len(edges))
                                 edges[e].r_nei = str(len(edges))
-                                edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                                 edges[str(len(edges)-1)].l_nei = e
                                 del backup[i]
                                 break
@@ -232,28 +258,28 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                         if ll == 0:
                             start_edge = str(len(edges))
                             edges[e].l_nei = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                             edges[str(len(edges)-1)].r_nei = e
                             del backup[i]
                             break
                         elif lr == 0:
                             end_edge = str(len(edges))
                             edges[e].r_nei = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                             edges[str(len(edges)-1)].l_nei = e
                             del backup[i]
                             break
                         elif rl == 0:
                             start_edge = str(len(edges))
                             edges[e].l_nei = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                             edges[str(len(edges)-1)].r_nei = e
                             del backup[i]
                             break
                         elif rr == 0:
                             end_edge = str(len(edges))
                             edges[e].r_nei = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                             edges[str(len(edges)-1)].l_nei = e
                             del backup[i]
                             break
@@ -925,358 +951,525 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
     boundary,edges,start_edge,end_edge = polygon_boundary(P,ax)
     return boundary,edges,start_edge,end_edge , P
 
-class Node:
-    def __init__(self,id,arena_w,arena_h):
-        self.node_id = np.array([int(id/arena_w),id%arena_w])
-        self.probability = 1.0/(arena_h*arena_w)
-        self.cost = 0.0
-        self.distance = None
-        self.parent = None
-        self.f = 0.0
+# Decomposition
 
-class Robot:
-    def __init__(self,id,arena_w,arena_h,nodes,r_type):
-        self.id = id
-        self.type = r_type
-        self.past_loc = None
-        self.arena_w = arena_w
-        self.arena_h = arena_h
-        self.start = 1
-        self.present_loc = self.loc(nodes)
-        self.next_loc = None
-        self.path_trace = [self.present_loc]
-        self.body = None
-        self.path_trace_past = None
-        self.arena = cp.copy(nodes)
-        self.path_progressor = 0
-        
+def get_area_vertices(array):
+    array = np.array(array)
+    done = 0
+    pts = len(array)-2
+    while not done:
+        if pts<len(array)-1:
+            this = array[pts]
+            pre = array[pts-1]
+            post = array[pts+1]
 
-    def loc(self,nodes):
-        if self.type == 's':
-            probs = probabilities_(nodes)
-            probs = probs.reshape(self.arena_h*self.arena_w).astype(float)
-            random_loc_num = np.random.choice(range(self.arena_h*self.arena_w),p=probs/np.sum(probs))
-            return np.array([int(random_loc_num/self.arena_w),random_loc_num%self.arena_w])
-        else:
-            if self.start:
-                random_loc_num = np.random.choice(range(self.arena_h*self.arena_w))
-                self.start = 0
-                return np.array([int(random_loc_num/self.arena_w),random_loc_num%self.arena_w])
+            if (pre[0] == this[0] == post[0]) or (pre[1] == this[1] == post[1]):
+                array = np.delete(array,pts,axis=0)
+        pts -= 1
+        if pts<1:
+            done = 1
+    return array
+
+def get_rectangles(p,vertex_set,ax):
+    grids = cp.copy(p)
+    rectangles = []
+    while len(grids)>0:
+        g = list(grids.items())[0][0]
+        marker = [0,0,0,0]  # l,r,t,b
+        if grids[g].l_nei is not None:
+            marker[0] = 1
+        if grids[g].r_nei is not None:
+            marker[1] = 1
+        if grids[g].t_nei is not None:
+            marker[2] = 1
+        if grids[g].b_nei is not None:
+            marker[3] = 1
+        while grids[g].l_nei != None:
+            if grids[g].l_nei != None:
+                g = grids[g].l_nei
             else:
-                multiplier = np.array([[0,1],[1,0]])
-                choose_multiplier = np.random.randint(0,2)
-                rand_loc = np.random.randint(-1,2,size=2)* multiplier[choose_multiplier]
-                new_loc = self.present_loc - rand_loc
-                # if new_loc[0]>=self.arena_h or new_loc[1]>=self.arena_w:
-                #     new_loc = self.present_loc
-                while new_loc[0]>=self.arena_h or new_loc[1]>=self.arena_w or new_loc[0]<=0 or new_loc[1]<=0:
-                    choose_multiplier = np.random.randint(0,2)
-                    rand_loc = np.random.randint(-1,2,size=2)* multiplier[choose_multiplier]
-                    new_loc = self.present_loc - rand_loc
-                return new_loc
+                break
+        while grids[g].b_nei != None:
+            if grids[g].b_nei != None:
+                g = grids[g].b_nei
+            else:
+                break
 
-def cost_map_(grids):
-    cost = np.zeros_like(grids)
-    for i in range(grids.shape[0]):
-        for j in range(grids.shape[1]):
-            cost[i,j] = grids[i,j].cost
-    return cost
+        # x = grids[g].get_x()
+        # y = grids[g].get_y()
+        # ax.plot(x,y,color='red')
+        plt.show()
+        def check_presence_inside(vm,vertex_set,C):
+            a = False
+            for p2 in vertex_set:
+                a = a or (p2[0]<vm[0] and p2[1]<vm[1] and p2[0]>C[0] and p2[1]>C[1])
+            return a
 
-def probabilities_(grids):
-    prob = np.zeros_like(grids)
-    for i in range(grids.shape[0]):
-        for j in range(grids.shape[1]):
-            prob[i,j] = grids[i,j].probability
-    return prob
+        rec_vertices = [grids[g].bl,grids[g].tl,grids[g].br]
+        min_x = min(np.array(rec_vertices)[:,0])
+        min_y = min(np.array(rec_vertices)[:,1])
+        max_x = max(np.array(rec_vertices)[:,0])
+        max_y = max(np.array(rec_vertices)[:,1])
+        g_h = g
+        g_v = g
+        g_v1 = g_v
+        g_h1 = g_h
+        while grids[g_h].r_nei!= None or grids[g_v].t_nei!= None:
+            changed = 0
+            if np.sum(marker)>0:
+                
+                if grids[g_h].r_nei!= None:
+                    
+                    g_h = grids[g_h].r_nei
+                    
+                    rec_vertices.append(grids[g_h].br)
+                    max_x = max(np.array(rec_vertices)[:,0])
+                    max_y = max(np.array(rec_vertices)[:,1])
+                    if not check_presence_inside(np.array([max_x,max_y]),vertex_set,np.array([min_x,min_y])):
+                        g_h1 = g_h
+                        changed = 1
 
-def Astar(grids,source,destination):
-    # plt.ion()
-    # fig1,ax1 = plt.subplots()
-    inner_mat = np.zeros((grids.shape[1],grids.shape[1]))
-    outter_mat = np.zeros((grids.shape[0]*grids.shape[1],grids.shape[0]*grids.shape[1]))
+                    # x = grids[g_h].get_x()
+                    # y = grids[g_h].get_y()
+                    # ax.plot(x,y,color='pink')
+                    # plt.show()
+                    
+                if grids[g_v].t_nei!= None:
+                    
+                    g_v = grids[g_v].t_nei
+                    rec_vertices.append(grids[g_v].tl)
+                    max_x = max(np.array(rec_vertices)[:,0])
+                    max_y = max(np.array(rec_vertices)[:,1])
+                    if not check_presence_inside(np.array([max_x,max_y]),vertex_set,np.array([min_x,min_y])):
+                        g_v1 = g_v
+                        changed = 1
+                    # x = grids[g_v].get_x()
+                    # y = grids[g_v].get_y()
+                    # ax.plot(x,y,color='pink')
+                    # plt.show()
+                    
+            else:
+                rec_vertices = grids[g].get_corners()
+                rec_vertices = np.concatenate((rec_vertices,np.array([rec_vertices[0]])),axis=0)
+            if not changed:
+                break
 
-    for i in range(grids.shape[1]):
-        if i+1<grids.shape[1]:
-            inner_mat[i,i+1] = 1
-        if i-1>=0:
-            inner_mat[i,i-1] = 1
-    
-    for i in range(outter_mat.shape[1]):
-        if i+grids.shape[1]<outter_mat.shape[1]:
-            outter_mat[i,i+grids.shape[1]] = 1
-        if i-grids.shape[1]>=0:
-            outter_mat[i,i-grids.shape[1]] = 1
-    
-    vertices = np.kron(np.eye(grids.shape[0]),inner_mat) + outter_mat
-    edges = np.copy(vertices)
-    temp_grids = np.copy(grids)
-    cost_map = cost_map_(grids)
-    # plot_mesh(fig1,ax1,grids.shape[1],grids.shape[0],cost_map)
-    num_grids = len(vertices[0])
-    temp_grids[source[0],source[1]].f = 0
-    temp_grids[source[0],source[1]].distance = 0
-    temp_grids[destination[0],destination[1]].f = 0
-    open_nodes = [temp_grids[source[0],source[1]]]
-    closed_nodes = []
+        max_x = grids[g_h1].br[0]
 
-    while len(open_nodes) > 0:
-        current_node = open_nodes[0]
+        max_y = grids[g_v1].tl[1]
+
+        rectangles.append(Grid(tl=np.array([min_x,max_y]),bl=np.array([min_x,min_y]),tr=np.array([max_x,max_y]),br=np.array([max_x,min_y])))
+        ax.plot(rectangles[-1].get_x(),rectangles[-1].get_y())
+        delete_these = []
+        delete_border_grids = []
+        for g in grids:
+            x = grids[g].get_x()
+            y = grids[g].get_y()
+            marker = [0,0,0,0]  # l,r,t,b
+            if grids[g].l_nei is not None:
+                marker[0] = 1
+            if grids[g].r_nei is not None:
+                marker[1] = 1
+            if grids[g].t_nei is not None:
+                marker[2] = 1
+            if grids[g].b_nei is not None:
+                marker[3] = 1
+            if min(x) > min(rectangles[-1].get_x()) and max(x) < max(rectangles[-1].get_x()) and min(y) > min(rectangles[-1].get_y()) and max(y) < max(rectangles[-1].get_y()) and np.sum(marker)==4:
+                delete_these.append(g)
+            elif min(x) >= min(rectangles[-1].get_x()) and max(x) <= max(rectangles[-1].get_x()) and min(y) >= min(rectangles[-1].get_y()) and max(y) <= max(rectangles[-1].get_y()):
+                delete_border_grids.append(g)
+                p[g].rectangle_num = len(rectangles)-1
         
-        # ax1.scatter([current_node.node_id[1]+0.5],[current_node.node_id[0]+0.5],color = 'green')
+        for gg in delete_these:
+            if grids[gg].t_nei != None:
+                grids[grids[gg].t_nei].b_nei = None
+            if grids[gg].b_nei != None:
+                grids[grids[gg].b_nei].t_nei = None
+            if grids[gg].r_nei != None:
+                grids[grids[gg].r_nei].l_nei = None
+            if grids[gg].l_nei != None:
+                grids[grids[gg].l_nei].r_nei = None
+        for gg in delete_these:
+            del grids[gg]
+        plt.show()
+        
+        def get_neighbour(cel,s):
+            if s == 'r':
+                return cel.r_nei
+            elif s == 'l':
+                return cel.l_nei
+            elif s == 't':
+                return cel.t_nei
+            elif s == 'b':
+                return cel.b_nei
+        
+        sides = ['l','r','t','b']
+        ax.clear()
+        ax.plot(vertex_set[:,0],vertex_set[:,1],color='orange')
+        for gg in delete_border_grids:
+            for s in sides:
+                nei = get_neighbour(p[gg],s)
+                if nei not in delete_border_grids and nei != None:
+                    if grids[nei].t_nei in delete_border_grids:
+                        p[nei].passage = 1
+                        p[nei].passage_t = 1
+                        ax.plot(p[nei].get_x()[2:-1],p[nei].get_y()[2:-1],color='black')
+                    if grids[nei].b_nei in delete_border_grids:
+                        p[nei].passage = 1
+                        p[nei].passage_b = 1
+                        ax.plot(p[nei].get_x()[:2],p[nei].get_y()[:2],color='black')
+                    if grids[nei].l_nei in delete_border_grids:
+                        p[nei].passage = 1
+                        p[nei].passage_l = 1
+                        ax.plot([p[nei].get_x()[ind] for ind in range(-2,1)],[p[nei].get_y()[ind] for ind in range(-2,1)],color='black')
+                    if grids[nei].r_nei in delete_border_grids:
+                        p[nei].passage = 1
+                        p[nei].passage_r = 1
+                        ax.plot(p[nei].get_x()[1:3],p[nei].get_y()[1:3],color='black')
+        
+        for gg in delete_border_grids:
+            if grids[gg].t_nei != None:
+                grids[grids[gg].t_nei].b_nei = None
+            if grids[gg].b_nei != None:
+                grids[grids[gg].b_nei].t_nei = None
+            if grids[gg].r_nei != None:
+                grids[grids[gg].r_nei].l_nei = None
+            if grids[gg].l_nei != None:
+                grids[grids[gg].l_nei].r_nei = None
+                
+        for gg in delete_border_grids:
+            del grids[gg]
+
+        plt.show()
+    
+    # for g in p:
+    #     # ax.plot(p[g].get_x(),p[g].get_y(),color='orange')
+    #     if p[g].passage_l:
+    #         ax.plot([p[g].get_x()[ind] for ind in range(-2,1)],[p[g].get_y()[ind] for ind in range(-2,1)],color='white')
+    #     if p[g].passage_r:
+    #         ax.plot(p[g].get_x()[1:3],p[g].get_y()[1:3],color='white')
+    #     if p[g].passage_t:
+    #         ax.plot(p[g].get_x()[2:-1],p[g].get_y()[2:-1],color='white')
+    #     if p[g].passage_b:
+    #         ax.plot(p[g].get_x()[:2],p[g].get_y()[:2],color='white')
+    plt.show()
+    return rectangles, p
+
+#   Spacefilling curves
+def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax,grid_graph,grids,rec_num):
+    def check_presence_inside(vm,vertex_set,C):
+        a = False
+        for p2 in vertex_set:
+            a = a or (p2[0]<vm[0] and p2[1]<vm[1] and p2[0]>C[0] and p2[1]>C[1])
+        return a
+    centroids = []
+    for i in range(x1,x2,inner_grid_width):
+        for j in range(y1,y2,inner_grid_height):
+            grid_graph.update({str([i,j]):Grid(tl=np.array([i,j+inner_grid_height]),tr=np.array([i+inner_grid_width,j+inner_grid_height]),bl=np.array([i,j]),br=np.array([i+inner_grid_width,j]))})
+            grid_graph[str([i,j])].height = inner_grid_height
+            grid_graph[str([i,j])].width = inner_grid_width
+            centroids.append(grid_graph[str([i,j])].centroid)
+            if i-inner_grid_width>=x1:
+                grid_graph[str([i,j])].l_nei = str([i-inner_grid_width,j])
+            if i+inner_grid_width<x2:
+                grid_graph[str([i,j])].r_nei = str([i+inner_grid_width,j])
+            if j-inner_grid_height>=y1:
+                grid_graph[str([i,j])].b_nei = str([i,j-inner_grid_height])
+            if j+inner_grid_height<y2:
+                grid_graph[str([i,j])].t_nei = str([i,j+inner_grid_height])
+            if i == 99 and j == 90:
+                print(' ')
+            if i == x1 or i == x2-inner_grid_width or j == y1 or j == y2-inner_grid_height:
+                for g in grids:
+                    if check_presence_inside([x2,y2],[grids[g].centroid],[x1,y1]) and (grids[g].passage == 1) and check_presence_inside(grids[g].tr,[grid_graph[str([i,j])].centroid],grids[g].bl):
+                        if grids[g].passage_l and grid_graph[str([i,j])].centroid[0] == grids[g].bl[0]+inner_grid_width/2:
+                            grid_graph[str([i,j])].passage = 1
+                            grid_graph[str([i,j])].l_nei = str(list((grid_graph[str([i,j])].bl-np.array([inner_grid_width,0])).astype(int)))
+                            grid_graph[grid_graph[str([i,j])].l_nei].r_nei = str([i,j])
+                        if grids[g].passage_r and grid_graph[str([i,j])].centroid[0] == grids[g].br[0]-inner_grid_width/2:
+                            grid_graph[str([i,j])].passage = 1
+                            grid_graph[str([i,j])].r_nei = str(list((grid_graph[str([i,j])].br).astype(int)))
+                            grid_graph[grid_graph[str([i,j])].r_nei].l_nei = str([i,j])
+                        if grids[g].passage_t and grid_graph[str([i,j])].centroid[1] == grids[g].tl[1]-inner_grid_height/2:
+                            grid_graph[str([i,j])].passage = 1
+                            grid_graph[str([i,j])].t_nei = str(list((grid_graph[str([i,j])].tl).astype(int)))
+                            grid_graph[grid_graph[str([i,j])].t_nei].b_nei = str([i,j])
+                        if grids[g].passage_b and grid_graph[str([i,j])].centroid[1] == grids[g].bl[1]+inner_grid_height/2:
+                            grid_graph[str([i,j])].passage = 1
+                            grid_graph[str([i,j])].b_nei = str(list((grid_graph[str([i,j])].bl-np.array([0,inner_grid_height])).astype(int)))
+                            grid_graph[grid_graph[str([i,j])].b_nei].t_nei = str([i,j])
+
+    return grid_graph,centroids
+
+#   Path planning for searcher robots              
+
+def Astar(grids,source,destination,fig = None,ax = None):
+    def get_neighbour(cel,s):
+        if s == 'r':
+            return cel.r_nei
+        elif s == 'l':
+            return cel.l_nei
+        elif s == 't':
+            return cel.t_nei
+        elif s == 'b':
+            return cel.b_nei
+
+    temp_grids = cp.copy(grids)
+
+    if ax != None:
+        plot_mesh(fig,ax,grids,title = '',without_bar=1)
+
+    temp_grids[source].total_cost = 0
+    temp_grids[source].distance = 0
+    temp_grids[destination].total_cost = 0
+    
+    if ax != None:
+        temp_grids[source].body = ax.plot(temp_grids[source].get_x(),temp_grids[source].get_y(),color = 'white')
+        temp_grids[destination].body = ax.plot(temp_grids[destination].get_x(),temp_grids[destination].get_y(),color = 'green')
+
+    open_nodes = [source]
+    closed_nodes = []
+    while len(open_nodes) > 0:
+        
+        current_node = open_nodes[0]
         current_index = 0
-        for i, item in enumerate(open_nodes):
-            if item.f < current_node.f:
+        for i,item in enumerate(open_nodes):
+            if temp_grids[item].total_cost < temp_grids[current_node].total_cost:
                 current_node = item
                 current_index = i
-        # ax1.scatter([current_node.node_id[1]+0.5],[current_node.node_id[0]+0.5],color = 'orange')
-        
+
         # Pop current off open list, add to closed list
         open_nodes.pop(current_index)
         closed_nodes.append(current_node)
-
         # Found the goal
-        if current_node == temp_grids[destination[0],destination[1]]:
-            # ax1.scatter([destination[1]+0.5],[destination[0]+0.5],color = 'violet')
-            # ax1.scatter([source[1]+0.5],[source[0]+0.5],color = 'black')
-
+        if current_node == destination or temp_grids[current_node].l_nei == destination or temp_grids[current_node].r_nei == destination or temp_grids[current_node].t_nei == destination or temp_grids[current_node].b_nei == destination:
+            temp_grids[destination].robo_path_pre = current_node
             path = []
-            current = current_node
+            current = destination
             while current is not None:
-                path.append(current.node_id)
-                # ax1.scatter([current.node_id[1]+0.5],[current.node_id[0]+0.5],color='brown',s=250)
-                current = current.parent
-                
-                
+                path.append(current)
+                current = temp_grids[current].robo_path_pre
+            
+            # for p in path:
+            #     temp_grids[p].body = ax.plot(temp_grids[p].get_x(),temp_grids[p].get_y(),color = 'yellow',linewidth = 0.5)
+            
             return path[::-1] # Return reversed path
 
-        # Generate children
+        # Generate child paths
+
         children = []
-        for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
-
-            # Get node position
-            node_position = (current_node.node_id[0] + new_position[0], current_node.node_id[1] + new_position[1])
-            
-        
-            # Make sure within range
-            if (node_position[0] < 0 or node_position[0] > grids.shape[0]-1) or (node_position[1] > grids.shape[1]-1 or node_position[1] < 0):
-                continue
-
-            # Create new node
-            new_node = temp_grids[node_position[0],node_position[1]]
-
-            # Append
-            if np.linalg.norm(np.array(node_position)-source)!=0:
-                # ax1.scatter([node_position[1]+0.5],[node_position[0]+0.5],color = 'brown')
-                children.append(new_node)
+        sides = ['l','r','t','b']
+        for s in sides:
+            nei = get_neighbour(temp_grids[current_node],s)
+            if nei != source:
+                children.append(nei)
 
         # Loop through children
         for child in children:
-            # ax1.scatter([child.node_id[1]+0.5],[child.node_id[0]+0.5],edgecolors = 'white',facecolor='none')
-            # Child is on the closed list
-            for closed_child in closed_nodes:
-                if child == closed_child:
-                    # ax1.scatter([child.node_id[1]+0.5],[child.node_id[0]+0.5],color = 'orange')
-                    continue
-            
-            if child not in closed_nodes:
-                # Create the f, g, and h values
-                if child==temp_grids[source[0],source[1]]:
-                    print('Doomed')
-                child.distance = current_node.distance + 1
-                child.f = child.distance + child.cost
-                child.parent = current_node
-                # ax1.plot([child.node_id[1]+0.5,child.parent.node_id[1]+0.5],[child.node_id[0]+0.5,child.parent.node_id[0]+0.5],color= 'black')
-                # ax1.scatter([child.parent.node_id[1]+0.5],[child.parent.node_id[0]+0.5],edgecolors= 'red',facecolor='none')
-
-            # Child is already in the open list
-            for open_node in open_nodes:
-                if child == open_node and child.distance > open_node.distance and child.cost > open_node.cost:
-                    # ax1.scatter([child.node_id[1]+0.5],[child.node_id[0]+0.5],color = 'cyan')
-                    continue
+            if child in closed_nodes:
+                continue
+            elif child != None:
+                # Assign the f, g, and h values
+                temp_grids[child].distance = temp_grids[current_node].distance + 1
+                temp_grids[child].robo_path_pre = current_node
+                temp_grids[child].total_cost = temp_grids[current_node].total_cost + temp_grids[child].heuristics# + 0.1*temp_grids[child].heuristics_2
 
             # Add the child to the open list
-            if child not in open_nodes+closed_nodes:
+            if child not in open_nodes+closed_nodes and child != None:
                 open_nodes.append(child)
-            # ax1.scatter([destination[1]+0.5],[destination[0]+0.5],color = 'violet')
-            # ax1.scatter([source[1]+0.5],[source[0]+0.5],color = 'black')
+
     return path
 
-def intruder_(arena_w,arena_h,grids,ax):
-    intruder = Robot(-1,arena_w,arena_h,grids,'i')    #   Spawn Intruder
-    random_loc_num = np.random.choice(range(arena_h*arena_w))
-    intruder.present_loc = np.array([int(random_loc_num/arena_w),random_loc_num%arena_w])
-    intru = ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],color='red',s=25)
-    ax.add_artist(intru)
-    return intruder
+def plot_mesh(fig,ax,grid,title,without_bar=0):
+    values_x = []
+    values_y = []
+    for g in grid:
+        values_x = values_x + list(grid[g].get_x())
+        values_y = values_y + list(grid[g].get_y())
 
-def intruder_plot(intruder,ax):
-    intru = ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],color='red',s=25)
-    ax.add_artist(intru)
-
-def searchers(num_robots,arena_w,arena_h,grids,ax):
-    robots = [] #   Spawn Robots
-    for i in range(num_robots):
-        robots.append(Robot(i,arena_w,arena_h,grids,'s'))
-        robots[i].body = ax.scatter([robots[i].present_loc[1]+0.5],[robots[i].present_loc[0]+0.5],color='pink',s=25)
-        ax.add_artist(robots[i].body)
-    return robots
-
-def searchers_plot(robots,ax):
-    for r in robots:
-        r.body = ax.scatter([r.present_loc[1]+0.5],[r.present_loc[0]+0.5],color='pink',s=25)
-        ax.add_artist(r.body)
-
-def visited_loc(robots):
-    present_locs = []
-    for r in robots:
-        present_locs += [list(r.present_loc)]
-    return present_locs
-
-def plot_past_path(ax,robots):
-    for r in robots:
-        if not isinstance(r.path_trace_past,type(None)):
-            for p in r.path_trace_past:
-                ax.scatter([p[1]+0.5],[p[0]+0.5],edgecolors='maroon', facecolors='none',s=60)
-            ax.scatter([r.path_trace_past[0][1]+0.5],[r.path_trace_past[0][0]+0.5],edgecolors='black',s=25, facecolors='none')
-            ax.scatter([r.path_trace_past[-1][1]+0.5],[r.path_trace_past[-1][0]+0.5],edgecolors='white',s=25, facecolors='none')
-
-def update_prob_costs(grids,present_locs,arena_h,arena_w):
-    for row in range(grids.shape[0]): #   Update the Costs and Probabilities of the grids
-        for col in range(grids.shape[1]):
-            loc = np.array([row,col])
-            for l in present_locs:
-                if np.linalg.norm(loc-np.array(l))==0:
-                    grids[loc[0],loc[1]].probability -= 0#1/(arena_h*arena_w)
-                    if grids[loc[0],loc[1]].probability<0:
-                        grids[loc[0],loc[1]].probability=0
-                    grids[loc[0],loc[1]].cost += 1/(arena_h*arena_w)
-                else:
-                    grids[loc[0],loc[1]].probability += 0#1/(arena_h*arena_w*len(present_locs))
-
-def plot_mesh(fig,ax,arena_w,arena_h,grid,title,without_bar=0):
-    grid = np.round(np.array(grid).astype(float),decimals=4)
-    cs = ax.pcolormesh(grid,shading='auto',cmap='plasma')
+    x = np.arange(min(values_x),max(values_x),grid_width)
+    y = np.arange(min(values_y),max(values_y),grid_height)
+    z = []
+    for i in x:
+        verti = []
+        for j in y:
+            if str([i, j]) in grid:
+                verti.append(grid[str([i,j])].heuristics)
+            else:
+                verti.append(0)
+        z.append(verti)
+    z = np.array(z).T
+    cs = ax.pcolormesh(x + grid_width/2,y + grid_height/2,z,shading='auto',cmap='inferno')
+    cs.set_clim(0,1)
     if not without_bar:
         cbar = fig.colorbar(cs,orientation='vertical')
-        cbar.set_ticks(np.arange(0,1,0.1))
-    cs.set_clim(0,1)
+        cbar.set_ticks(np.arange(0,1.1,0.1))
+
     ax.set_aspect('equal', 'box')
-    major_ticks = np.arange(0, arena_w+1, 1)
-    minor_ticks = np.arange(0, arena_h+1, 1)
-    ax.set_xticks(major_ticks)
-    ax.set_xticks(minor_ticks, minor=True)
-    ax.set_yticks(major_ticks)
-    ax.set_yticks(minor_ticks, minor=True)
-    ax.grid(b=True, which='major', color='black', linestyle='-',linewidth = 0.2)
-    ax.grid(b=True, which='minor', color='black', linestyle='-',linewidth = 0.2)
+    # ax.set_xticks([])
+    # ax.set_yticks([])
     ax.set_title(title)
-    # ax.axes.xaxis.set_ticks([])
-    # ax.axes.yaxis.set_ticks([])
 
+#   Setting up robot object
 
-# Generalize these for generic rectilinear simple polygon
-static_intruder = 0
-if static_intruder:
-    arena_w = 10
-    arena_h = 10
+class Robot:
+    def __init__(self,id,r_type,grids):
+        self.id = id
+        self.type = r_type
+
+        self.past_loc = None
+        self.present_loc = np.random.choice(list(grids))
+        self.next_loc = np.random.choice(list(grids))
+        while self.next_loc == self.present_loc:
+            self.next_loc = np.random.choice(list(grids))
+        self.body = None
+
+        self.path_history = []
+        if self.type == 's':
+            self.path_ahead = Astar(grids,self.present_loc,self.next_loc)
+
+        self.path_progressor = 0
+
+    def loc(self,nodes,bias=0):
+        if bias:
+            probabilities = []
+            for g in nodes:
+                probabilities.append(nodes[g].chance_of_intruder)
+
+        def get_neighbour(cel,s):
+            if s == 'r':
+                return cel.r_nei
+            elif s == 'l':
+                return cel.l_nei
+            elif s == 't':
+                return cel.t_nei
+            elif s == 'b':
+                return cel.b_nei
+        
+        if self.type == 's':
+            return np.random.choice(list(nodes))
+        else:
+            sides = ['l','r','t','b']
+            intruder_next = np.random.choice(sides)
+            next_loc = get_neighbour(nodes[self.present_loc],intruder_next)
+            while next_loc == None:
+                sides.pop(sides.index(intruder_next))
+                intruder_next = np.random.choice(sides)
+                next_loc = get_neighbour(nodes[self.present_loc],intruder_next)
+            return next_loc
+    def update(self,grid):
+        self.body.set_offsets([[grid[self.present_loc].centroid[0],grid[self.present_loc].centroid[1]]])
+
+def intruder_(grids,grid_w,grid_h,ax):
+    intruder = Robot(-1,'i',grids)    #   Spawn Intruder
+    if ax != None:
+        intruder.body = ax.scatter([grids[intruder.present_loc].centroid[0]],[grids[intruder.present_loc].centroid[1]],color='red',s=25)
+        ax.add_artist(intruder.body)
+    for g in grids:
+        grids[g].robo_path_pre = None
+    return intruder
+
+def searchers(num_robots,grid_w,grid_h,grid,ax = None):
+    robots = [] #   Spawn Robots
+    for i in range(num_robots):
+        robots.append(Robot(i,'s',grid))
+        if ax != None:
+            robots[i].body = ax.scatter([grid[robots[i].present_loc].centroid[0]],[grid[robots[i].present_loc].centroid[1]],color='pink',s=25)
+            ax.add_artist(robots[i].body)
+        for g in grid:
+            grid[g].robo_path_pre = None
+    return robots
+
+def update_prob_costs(grids,present_locs):
+    for g in grids: #   Update the Costs and Probabilities of the grids
+        for l in present_locs:
+            if l==g:
+                # grids[g].probability -= 0#1/(arena_h*arena_w)
+                # if grids[g].probability<0:
+                #     grids[g].probability=0
+                # elif grids[g].probability>1:
+                #     grids[g].probability=1
+                grids[g].heuristics += 50/len(grids)
+            # else:
+            #     grids[g].probability += 0#1/(arena_h*arena_w*len(present_locs))
+static_intruder_random_arena = 0
+if static_intruder_random_arena:
+    fig,ax = plt.subplots()
+    ax.set_aspect('equal')
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
+
+    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
+
+    rectangles = []
+    for r in rectangles_nodes:
+        rectangles.append(r.get_corners())
+
+    k_max = 0
+    grid_graph = {}
+    HSC = []
+    grid_height = 5
+    grid_width = 5
+    area_reactangles = []
+    for r in range(len(rectangles)):
+        grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
+
 
     time = []
     agents = []
     plt.ion()
-    fig,ax = plt.subplots()
-    fig1,ax1 = plt.subplots()
-    faulthandler.enable()
-    for num_robots in range(1,25,1):
+
+    for num_robots in range(1,10,1):
         avg_time = []
         for runs in range(10):
+            for g in grid_graph:
+                grid_graph[g].robo_path_pre = None
             t = 0   #   Initialize time
             search_state =  0 #   0 = not found, 1 = found
-            ax.clear()
-            ax1.clear()
-            grids = np.array([Node(i,arena_h=arena_h,arena_w=arena_w) for i in range(arena_w*arena_h)]).reshape((arena_h,arena_w))
-            probabilities = probabilities_(grids)
-            costs = cost_map_(grids)
-            if num_robots ==1 and runs ==0:
-                without_bar = 0
-            else:
-                without_bar = 1
-            
-            plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar)
-            plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar)    
 
-            robots = searchers(num_robots,arena_w,arena_h,cp.copy(grids),ax)
-            intruder = intruder_(arena_w,arena_h,cp.copy(grids),ax)
-            intruder_plot(intruder,ax1)
-            searchers_plot(robots,ax1)
+
+            robots = searchers(num_robots,grid_width,grid_height,grid_graph,ax)
+            intruder = intruder_(grid_graph,grid_width,grid_height,ax)
             
             while not search_state: #   While Intruder is not found
-                ax.clear()
-                ax1.clear()
-                present_locs = visited_loc(robots)
-                update_prob_costs(grids,present_locs,arena_h,arena_w)
-                probabilities = probabilities_(grids)
-                costs = cost_map_(grids)
-                plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar=1)
-                plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar=1)
 
-                intruder_plot(intruder,ax1)
-                searchers_plot(robots,ax1)
-
-                plot_past_path(ax,robots)
-                plt.show()
-                plt.pause(0.00001)
-
-                # Intruder update
-                intruder.next_loc = intruder.present_loc
-
-                intruder.past_loc = intruder.present_loc
-                intruder.present_loc = intruder.next_loc
-
-                ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],edgecolors='white',s=25, facecolors='none')
-                ax.scatter([intruder.next_loc[1]+0.5],[intruder.next_loc[0]+0.5],marker='x',color = 'green')
-                plt.show()
-                plt.pause(0.00001)
-                
+                present_locs = [r.present_loc for r in robots]
+                update_prob_costs(grid_graph,present_locs)
+                # plot_mesh(fig,ax,grid_graph,'cost map',without_bar=1)
 
                 #   Robots update
-
-                # paths = []
                 for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
-                    if np.linalg.norm(robots[i].present_loc-robots[i].path_trace[-1])==0:
-                        robots[i].next_loc = robots[i].loc(grids)
+                    if robots[i].present_loc == robots[i].path_ahead[-1]:
+                        robots[i].next_loc = robots[i].loc(grid_graph)
+                        while robots[i].next_loc == robots[i].present_loc:
+                            robots[i].next_loc = robots[i].loc(grid_graph)
+                        for g in grid_graph:
+                            grid_graph[g].robo_path_pre = None
+                        path = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
 
-                        for g in grids:
-                            for g_ij in g:
-                                g_ij.parent = None
-                        path = Astar(grids,robots[i].present_loc,robots[i].next_loc)
-                        for p in range(len(path)-1):
-                            ax.scatter([path[p][1]+0.5],[path[p][0]+0.5],edgecolors='cyan',s=25, facecolors='none')
-
-                            # ax.plot([path[p][1]+0.5,path[p+1][1]+0.5],[path[p][0]+0.5,path[p+1][0]+0.5],color= 'black',alpha=0.2)
-                        ax.scatter([path[0][1]+0.5],[path[0][0]+0.5],edgecolors='white',s=25, facecolors='none')
-                        ax.scatter([path[-1][1]+0.5],[path[-1][0]+0.5],marker='x',color = 'green')
-                        plt.show()
-                        plt.pause(0.00001)
-                        
-                        robots[i].path_trace_past = path#robots[i].path_trace
-                        robots[i].path_trace = path
+                        robots[i].path_history = robots[i].path_history + robots[i].path_ahead
+                        robots[i].path_ahead = path
                         robots[i].path_progressor = 0
-
-                    # paths+= list(robots[i].present_loc)
+                    robots[i].update(grid_graph)
 
                     robots[i].past_loc = robots[i].present_loc
                     
-                    robots[i].present_loc = robots[i].path_trace[robots[i].path_progressor] # add index increment
+                    robots[i].present_loc = robots[i].path_ahead[robots[i].path_progressor]
                     robots[i].path_progressor += 1
-
+                # Intruder update
+                intruder.next_loc = intruder.present_loc
+                intruder.past_loc = intruder.present_loc
+                intruder.present_loc = intruder.next_loc
                 t += 1
                 for r in robots:
-                    if np.linalg.norm(intruder.present_loc-r.present_loc)==0:
+                    if intruder.present_loc == r.present_loc:
+                        intruder.body.set_visible(False)
+                        for rb in robots:
+                            rb.body.set_visible(False)
                         search_state = 1
-                        break  
+                        avg_time.append(t)
                 plt.show()
                 plt.pause(0.000001)     
-            avg_time.append(t)
+            
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
 
@@ -1288,114 +1481,91 @@ if static_intruder:
     ax.plot(time,agents)
     ax.set_xlabel("Time taken")
     ax.set_ylabel("Number of search agents")
-    plt.savefig('static_intruder.eps')
+    plt.savefig('static_intruder.png')
     plt.show()
 
-dynamic_intruder = 1
-if dynamic_intruder:
-    arena_w = 10
-    arena_h = 10
+dynamic_intruder_random_arena = 1
+if dynamic_intruder_random_arena:
+    fig,ax = plt.subplots()
+    ax.set_aspect('equal')
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
+
+    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
+
+    rectangles = []
+    for r in rectangles_nodes:
+        rectangles.append(r.get_corners())
+
+    k_max = 0
+    grid_graph = {}
+    HSC = []
+    grid_height = 5
+    grid_width = 5
+    area_reactangles = []
+    for r in range(len(rectangles)):
+        grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
+
 
     time = []
     agents = []
     plt.ion()
-    fig,ax = plt.subplots()
-    fig1,ax1 = plt.subplots()
-    faulthandler.enable()
+
     for num_robots in range(1,10,1):
         avg_time = []
         for runs in range(10):
+            for g in grid_graph:
+                grid_graph[g].robo_path_pre = None
             t = 0   #   Initialize time
             search_state =  0 #   0 = not found, 1 = found
-            ax.clear()
-            ax1.clear()
-            grids = np.array([Node(i,arena_h=arena_h,arena_w=arena_w) for i in range(arena_w*arena_h)]).reshape((arena_h,arena_w))
-            probabilities = probabilities_(grids)
-            costs = cost_map_(grids)
-            if num_robots ==1 and runs ==0:
-                without_bar = 0
-            else:
-                without_bar = 1
-            
-            plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar)
-            plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar)    
 
-            robots = searchers(num_robots,arena_w,arena_h,cp.copy(grids),ax)
-            intruder = intruder_(arena_w,arena_h,cp.copy(grids),ax)
-            intruder_plot(intruder,ax1)
-            searchers_plot(robots,ax1)
+
+            robots = searchers(num_robots,grid_width,grid_height,grid_graph,ax)
+            intruder = intruder_(grid_graph,grid_width,grid_height,ax)
             
             while not search_state: #   While Intruder is not found
-                ax.clear()
-                ax1.clear()
-                present_locs = visited_loc(robots)
-                update_prob_costs(grids,present_locs,arena_h,arena_w)
-                probabilities = probabilities_(grids)
-                costs = cost_map_(grids)
-                plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar=1)
-                plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar=1)
 
-                intruder_plot(intruder,ax1)
-                searchers_plot(robots,ax1)
-
-                plot_past_path(ax,robots)
-                plt.show()
-                plt.pause(0.00001)
-
-                # Intruder update
-                intruder.next_loc = intruder.loc(grids)
-
-                intruder.past_loc = intruder.present_loc
-                intruder.present_loc = intruder.next_loc
-
-                ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],edgecolors='white',s=25, facecolors='none')
-                ax.scatter([intruder.next_loc[1]+0.5],[intruder.next_loc[0]+0.5],marker='x',color = 'green')
-                plt.show()
-                plt.pause(0.00001)
-                
+                present_locs = [r.present_loc for r in robots]
+                update_prob_costs(grid_graph,present_locs)
+                # plot_mesh(fig,ax,grid_graph,'cost map',without_bar=1)
 
                 #   Robots update
-
-                paths = []
                 for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
-                    if np.linalg.norm(robots[i].present_loc-robots[i].path_trace[-1])==0:
-                        robots[i].next_loc = robots[i].loc(grids)
+                    if robots[i].present_loc == robots[i].path_ahead[-1]:
+                        robots[i].next_loc = robots[i].loc(grid_graph)
+                        while robots[i].next_loc == robots[i].present_loc:
+                            robots[i].next_loc = robots[i].loc(grid_graph)
+                        for g in grid_graph:
+                            grid_graph[g].robo_path_pre = None
+                        path = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
 
-                        for g in grids:
-                            for g_ij in g:
-                                g_ij.parent = None
-                        path = Astar(grids,robots[i].present_loc,robots[i].next_loc)
-                        for p in range(len(path)-1):
-                            ax.scatter([path[p][1]+0.5],[path[p][0]+0.5],edgecolors='cyan',s=25, facecolors='none')
-
-                            # ax.plot([path[p][1]+0.5,path[p+1][1]+0.5],[path[p][0]+0.5,path[p+1][0]+0.5],color= 'black',alpha=0.2)
-                        ax.scatter([path[0][1]+0.5],[path[0][0]+0.5],edgecolors='white',s=25, facecolors='none')
-                        ax.scatter([path[-1][1]+0.5],[path[-1][0]+0.5],marker='x',color = 'green')
-                        plt.show()
-                        plt.pause(0.00001)
-                        
-                        robots[i].path_trace_past = path#robots[i].path_trace
-                        robots[i].path_trace = path
+                        robots[i].path_history = robots[i].path_history + robots[i].path_ahead
+                        robots[i].path_ahead = path
                         robots[i].path_progressor = 0
-
-                    paths+= list(robots[i].present_loc)
+                    robots[i].update(grid_graph)
 
                     robots[i].past_loc = robots[i].present_loc
-
-                    robots[i].present_loc = robots[i].path_trace[robots[i].path_progressor] # add index increment
+                    
+                    robots[i].present_loc = robots[i].path_ahead[robots[i].path_progressor]
                     robots[i].path_progressor += 1
-
+                # Intruder update
+                intruder.next_loc = intruder.loc(grid_graph)
+                intruder.past_loc = intruder.present_loc
+                intruder.present_loc = intruder.next_loc
+                intruder.update(grid_graph)
                 t += 1
                 for r in robots:
-                    if np.linalg.norm(intruder.present_loc-r.present_loc)==0:
+                    if intruder.present_loc == r.present_loc:
+                        intruder.body.set_visible(False)
+                        for rb in robots:
+                            rb.body.set_visible(False)
                         search_state = 1
-                        break  
+                        avg_time.append(t)
                 plt.show()
                 plt.pause(0.000001)     
-            avg_time.append(t)
+            
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
-    
+
     fileObject = open('data_dynamic_intruder', 'wb')
     pkl.dump(np.array(time),fileObject)
     pkl.dump(np.array(agents),fileObject)
@@ -1404,5 +1574,238 @@ if dynamic_intruder:
     ax.plot(time,agents)
     ax.set_xlabel("Time taken")
     ax.set_ylabel("Number of search agents")
-    plt.savefig('dynamic_intruder.eps')
+    plt.savefig('dynamic_intruder.png')
     plt.show()
+
+
+# static_intruder = 0
+# if static_intruder:
+#     arena_w = 10
+#     arena_h = 10
+
+#     time = []
+#     agents = []
+#     plt.ion()
+#     fig,ax = plt.subplots()
+#     fig1,ax1 = plt.subplots()
+#     faulthandler.enable()
+#     for num_robots in range(1,25,1):
+#         avg_time = []
+#         for runs in range(10):
+#             t = 0   #   Initialize time
+#             search_state =  0 #   0 = not found, 1 = found
+#             ax.clear()
+#             ax1.clear()
+#             grids = np.array([Node(i,arena_h=arena_h,arena_w=arena_w) for i in range(arena_w*arena_h)]).reshape((arena_h,arena_w))
+#             probabilities = probabilities_(grids)
+#             costs = cost_map_(grids)
+#             if num_robots ==1 and runs ==0:
+#                 without_bar = 0
+#             else:
+#                 without_bar = 1
+            
+#             plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar)
+#             plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar)    
+
+#             robots = searchers(num_robots,arena_w,arena_h,cp.copy(grids),ax)
+#             intruder = intruder_(arena_w,arena_h,cp.copy(grids),ax)
+#             intruder_plot(intruder,ax1)
+#             searchers_plot(robots,ax1)
+            
+#             while not search_state: #   While Intruder is not found
+#                 ax.clear()
+#                 ax1.clear()
+#                 present_locs = visited_loc(robots)
+#                 update_prob_costs(grids,present_locs,arena_h,arena_w)
+#                 probabilities = probabilities_(grids)
+#                 costs = cost_map_(grids)
+#                 plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar=1)
+#                 plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar=1)
+
+#                 intruder_plot(intruder,ax1)
+#                 searchers_plot(robots,ax1)
+
+#                 plot_past_path(ax,robots)
+#                 plt.show()
+#                 plt.pause(0.00001)
+
+#                 # Intruder update
+#                 intruder.next_loc = intruder.present_loc
+
+#                 intruder.past_loc = intruder.present_loc
+#                 intruder.present_loc = intruder.next_loc
+
+#                 ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],edgecolors='white',s=25, facecolors='none')
+#                 ax.scatter([intruder.next_loc[1]+0.5],[intruder.next_loc[0]+0.5],marker='x',color = 'green')
+#                 plt.show()
+#                 plt.pause(0.00001)
+                
+
+#                 #   Robots update
+
+#                 # paths = []
+#                 for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
+#                     if np.linalg.norm(robots[i].present_loc-robots[i].path_trace[-1])==0:
+#                         robots[i].next_loc = robots[i].loc(grids)
+
+#                         for g in grids:
+#                             for g_ij in g:
+#                                 g_ij.parent = None
+#                         path = Astar(grids,robots[i].present_loc,robots[i].next_loc)
+#                         for p in range(len(path)-1):
+#                             ax.scatter([path[p][1]+0.5],[path[p][0]+0.5],edgecolors='cyan',s=25, facecolors='none')
+
+#                             # ax.plot([path[p][1]+0.5,path[p+1][1]+0.5],[path[p][0]+0.5,path[p+1][0]+0.5],color= 'black',alpha=0.2)
+#                         ax.scatter([path[0][1]+0.5],[path[0][0]+0.5],edgecolors='white',s=25, facecolors='none')
+#                         ax.scatter([path[-1][1]+0.5],[path[-1][0]+0.5],marker='x',color = 'green')
+#                         plt.show()
+#                         plt.pause(0.00001)
+                        
+#                         robots[i].path_trace_past = path#robots[i].path_trace
+#                         robots[i].path_trace = path
+#                         robots[i].path_progressor = 0
+
+#                     # paths+= list(robots[i].present_loc)
+
+#                     robots[i].past_loc = robots[i].present_loc
+                    
+#                     robots[i].present_loc = robots[i].path_trace[robots[i].path_progressor] # add index increment
+#                     robots[i].path_progressor += 1
+
+#                 t += 1
+#                 for r in robots:
+#                     if np.linalg.norm(intruder.present_loc-r.present_loc)==0:
+#                         search_state = 1
+#                         break  
+#                 plt.show()
+#                 plt.pause(0.000001)     
+#             avg_time.append(t)
+#         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
+#         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
+
+#     fileObject = open('data_static_intruder', 'wb')
+#     pkl.dump(np.array(time),fileObject)
+#     pkl.dump(np.array(agents),fileObject)
+#     plt.ioff()
+#     fig,ax = plt.subplots()
+#     ax.plot(time,agents)
+#     ax.set_xlabel("Time taken")
+#     ax.set_ylabel("Number of search agents")
+#     plt.savefig('static_intruder.eps')
+#     plt.show()
+
+# dynamic_intruder = 0
+# if dynamic_intruder:
+#     arena_w = 10
+#     arena_h = 10
+
+#     time = []
+#     agents = []
+#     plt.ion()
+#     fig,ax = plt.subplots()
+#     fig1,ax1 = plt.subplots()
+#     faulthandler.enable()
+#     for num_robots in range(1,10,1):
+#         avg_time = []
+#         for runs in range(10):
+#             t = 0   #   Initialize time
+#             search_state =  0 #   0 = not found, 1 = found
+#             ax.clear()
+#             ax1.clear()
+#             grids = np.array([Node(i,arena_h=arena_h,arena_w=arena_w) for i in range(arena_w*arena_h)]).reshape((arena_h,arena_w))
+#             probabilities = probabilities_(grids)
+#             costs = cost_map_(grids)
+#             if num_robots ==1 and runs ==0:
+#                 without_bar = 0
+#             else:
+#                 without_bar = 1
+            
+#             plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar)
+#             plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar)    
+
+#             robots = searchers(num_robots,arena_w,arena_h,cp.copy(grids),ax)
+#             intruder = intruder_(arena_w,arena_h,cp.copy(grids),ax)
+#             intruder_plot(intruder,ax1)
+#             searchers_plot(robots,ax1)
+            
+#             while not search_state: #   While Intruder is not found
+#                 ax.clear()
+#                 ax1.clear()
+#                 present_locs = visited_loc(robots)
+#                 update_prob_costs(grids,present_locs,arena_h,arena_w)
+#                 probabilities = probabilities_(grids)
+#                 costs = cost_map_(grids)
+#                 plot_mesh(fig,ax,arena_w,arena_h,probabilities,'Probability Map',without_bar=1)
+#                 plot_mesh(fig1,ax1,arena_w,arena_h,costs,'Cost Map',without_bar=1)
+
+#                 intruder_plot(intruder,ax1)
+#                 searchers_plot(robots,ax1)
+
+#                 plot_past_path(ax,robots)
+#                 plt.show()
+#                 plt.pause(0.00001)
+
+#                 # Intruder update
+#                 intruder.next_loc = intruder.loc(grids)
+
+#                 intruder.past_loc = intruder.present_loc
+#                 intruder.present_loc = intruder.next_loc
+
+#                 ax.scatter([intruder.present_loc[1]+0.5],[intruder.present_loc[0]+0.5],edgecolors='white',s=25, facecolors='none')
+#                 ax.scatter([intruder.next_loc[1]+0.5],[intruder.next_loc[0]+0.5],marker='x',color = 'green')
+#                 plt.show()
+#                 plt.pause(0.00001)
+                
+
+#                 #   Robots update
+
+#                 paths = []
+#                 for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
+#                     if np.linalg.norm(robots[i].present_loc-robots[i].path_trace[-1])==0:
+#                         robots[i].next_loc = robots[i].loc(grids)
+
+#                         for g in grids:
+#                             for g_ij in g:
+#                                 g_ij.parent = None
+#                         path = Astar(grids,robots[i].present_loc,robots[i].next_loc)
+#                         for p in range(len(path)-1):
+#                             ax.scatter([path[p][1]+0.5],[path[p][0]+0.5],edgecolors='cyan',s=25, facecolors='none')
+
+#                             # ax.plot([path[p][1]+0.5,path[p+1][1]+0.5],[path[p][0]+0.5,path[p+1][0]+0.5],color= 'black',alpha=0.2)
+#                         ax.scatter([path[0][1]+0.5],[path[0][0]+0.5],edgecolors='white',s=25, facecolors='none')
+#                         ax.scatter([path[-1][1]+0.5],[path[-1][0]+0.5],marker='x',color = 'green')
+#                         plt.show()
+#                         plt.pause(0.00001)
+                        
+#                         robots[i].path_trace_past = path#robots[i].path_trace
+#                         robots[i].path_trace = path
+#                         robots[i].path_progressor = 0
+
+#                     paths+= list(robots[i].present_loc)
+
+#                     robots[i].past_loc = robots[i].present_loc
+
+#                     robots[i].present_loc = robots[i].path_trace[robots[i].path_progressor] # add index increment
+#                     robots[i].path_progressor += 1
+
+#                 t += 1
+#                 for r in robots:
+#                     if np.linalg.norm(intruder.present_loc-r.present_loc)==0:
+#                         search_state = 1
+#                         break  
+#                 plt.show()
+#                 plt.pause(0.000001)     
+#             avg_time.append(t)
+#         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
+#         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
+    
+#     fileObject = open('data_dynamic_intruder', 'wb')
+#     pkl.dump(np.array(time),fileObject)
+#     pkl.dump(np.array(agents),fileObject)
+#     plt.ioff()
+#     fig,ax = plt.subplots()
+#     ax.plot(time,agents)
+#     ax.set_xlabel("Time taken")
+#     ax.set_ylabel("Number of search agents")
+#     plt.savefig('dynamic_intruder.eps')
+#     plt.show()
