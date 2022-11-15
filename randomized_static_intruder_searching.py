@@ -1423,6 +1423,10 @@ if static_intruder_random_arena:
         for runs in range(10):
             for g in grid_graph:
                 grid_graph[g].robo_path_pre = None
+                grid_graph[g].heuristics = 0
+                grid_graph[g].distance = 0
+                grid_graph[g].total_cost = 0
+
             t = 0   #   Initialize time
             search_state =  0 #   0 = not found, 1 = found
 
@@ -1515,6 +1519,9 @@ if dynamic_intruder_random_arena:
         for runs in range(10):
             for g in grid_graph:
                 grid_graph[g].robo_path_pre = None
+                grid_graph[g].heuristics = 0
+                grid_graph[g].distance = 0
+                grid_graph[g].total_cost = 0
             t = 0   #   Initialize time
             search_state =  0 #   0 = not found, 1 = found
 
@@ -1526,7 +1533,8 @@ if dynamic_intruder_random_arena:
 
                 present_locs = [r.present_loc for r in robots]
                 update_prob_costs(grid_graph,present_locs)
-                # plot_mesh(fig,ax,grid_graph,'cost map',without_bar=1)
+                if num_robots == 5 and t == 20:
+                    plot_mesh(fig,ax,grid_graph,'cost map',without_bar=0)
 
                 #   Robots update
                 for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
