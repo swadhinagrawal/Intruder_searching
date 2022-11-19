@@ -1111,7 +1111,7 @@ def get_rectangles(p,vertex_set,ax):
         
         sides = ['l','r','t','b']
         ax.clear()
-        ax.plot(vertex_set[:,0],vertex_set[:,1],color='orange')
+        ax.plot(vertex_set[:,0],vertex_set[:,1],color='darkblue',linewidth=2)
         for gg in delete_border_grids:
             for s in sides:
                 nei = get_neighbour(p[gg],s)
@@ -1222,16 +1222,16 @@ def Astar(grids,source,destination,fig = None,ax = None):
 
     temp_grids = cp.copy(grids)
 
-    if ax != None:
-        plot_mesh(fig,ax,grids,title = '',without_bar=1)
+    # if ax != None:
+    #     plot_mesh(fig,ax,grids,title = '',without_bar=1)
 
     temp_grids[source].total_cost = 0
     temp_grids[source].distance = 0
     temp_grids[destination].total_cost = 0
     
-    if ax != None:
-        temp_grids[source].body = ax.plot(temp_grids[source].get_x(),temp_grids[source].get_y(),color = 'white')
-        temp_grids[destination].body = ax.plot(temp_grids[destination].get_x(),temp_grids[destination].get_y(),color = 'green')
+    # if ax != None:
+    #     temp_grids[source].body = ax.plot(temp_grids[source].get_x(),temp_grids[source].get_y(),color = 'white')
+    #     temp_grids[destination].body = ax.plot(temp_grids[destination].get_x(),temp_grids[destination].get_y(),color = 'green')
 
     open_nodes = [source]
     closed_nodes = []
@@ -1287,7 +1287,7 @@ def Astar(grids,source,destination,fig = None,ax = None):
 
     return path
 
-def plot_mesh(fig,ax,grid,title,without_bar=0):
+def plot_mesh(fig,ax,grid,title,grid_mesh,without_bar=0):
     values_x = []
     values_y = []
     for g in grid:
@@ -1306,16 +1306,21 @@ def plot_mesh(fig,ax,grid,title,without_bar=0):
                 verti.append(0)
         z.append(verti)
     z = np.array(z).T
-    cs = ax.pcolormesh(x + grid_width/2,y + grid_height/2,z,shading='auto',cmap='inferno')
-    cs.set_clim(0,1)
-    if not without_bar:
-        cbar = fig.colorbar(cs,orientation='vertical')
-        cbar.set_ticks(np.arange(0,1.1,0.1))
+    # set_array
+    if grid_mesh == None:
+        grid_mesh = ax.pcolormesh(x + grid_width/2,y + grid_height/2,1-z,shading='auto',cmap='gist_heat')
+        grid_mesh.set_clim(0,1)
+        if not without_bar:
+            cbar = fig.colorbar(grid_mesh,orientation='vertical')
+            cbar.set_ticks(np.arange(0,1.1,0.1))
 
-    ax.set_aspect('equal', 'box')
-    # ax.set_xticks([])
-    # ax.set_yticks([])
-    ax.set_title(title)
+        # ax.set_aspect('equal', 'box')
+        # ax.set_xticks([])
+        # ax.set_yticks([])
+        ax.set_title(title)
+    else:
+        grid_mesh.set_array(z)
+    
 
 def min_zero_count_row(zero_mat, mark_zero):
     '''
@@ -1481,10 +1486,20 @@ def matching(edges,robots,destinations,grids):
     ans_pos = hungarian_algorithm(matrix.copy())#Get the element position.
     ans, ans_mat = ans_calculation(matrix, ans_pos)#Get the minimum or maximum value and corresponding matrix.
 
+    allocated = []
     for i in range(len(ans_mat)):
+        count = 0
         for j in range(len(ans_mat[i])):
             if ans_mat[i][j]!=0:
                 robots[i].next_loc = destinations[j]
+                allocated.append(destinations[j])
+            else:
+                count += 1
+        if count == len(ans_mat[i]):
+            for j in range(len(ans_mat[i])):
+                if destinations[j] not in allocated:
+                    robots[i].next_loc = destinations[j]
+                    allocated.append(destinations[j])
     return robots
  
 class Robot:
@@ -1505,6 +1520,13 @@ class Robot:
 
         self.path_progressor = 0
         self.distance = 0
+
+        self.trajectory = []
+        self.plott = None
+
+    def update_trajectory(self,loc):
+        self.trajectory.pop(0)
+        self.trajectory = self.trajectory + [loc]
 
     def loc(self,nodes,bias=0):
         if bias:
@@ -1550,7 +1572,7 @@ def searchers(num_robots,grid_w,grid_h,grid,ax = None):
     for i in range(num_robots):
         robots.append(Robot(i,'s',grid))
         if ax != None:
-            robots[i].body = ax.scatter([grid[robots[i].present_loc].centroid[0]],[grid[robots[i].present_loc].centroid[1]],color='pink',s=25)
+            robots[i].body = ax.scatter([grid[robots[i].present_loc].centroid[0]],[grid[robots[i].present_loc].centroid[1]],color='green',s=25)
             ax.add_artist(robots[i].body)
         for g in grid:
             grid[g].robo_path_pre = None
@@ -1568,10 +1590,16 @@ def update_prob_costs(grids,present_locs):
                 grids[g].heuristics += 50/len(grids)
             # else:
             #     grids[g].probability += 0#1/(arena_h*arena_w*len(present_locs))
-static_intruder_random_arena = 1
+static_intruder_random_arena = 0
 if static_intruder_random_arena:
-    fig,ax = plt.subplots()
+
+    fig,ax = plt.subplots(frameon = False)
+    plt.box(False)
     ax.set_aspect('equal')
+    fig.patch.set_visible(False)
+    ax.axis('off')
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
     boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
@@ -1593,7 +1621,7 @@ if static_intruder_random_arena:
     time = []
     agents = []
     plt.ion()
-
+    grid_mesh = None
     for num_robots in range(5,10,1):
         avg_time = []
         for runs in range(10):
@@ -1609,21 +1637,28 @@ if static_intruder_random_arena:
 
             robots = searchers(num_robots,grid_width,grid_height,grid_graph,ax)
             intruder = intruder_(grid_graph,grid_width,grid_height,ax)
-            for r in robots:
-                grid_graph[r.present_loc].body = ax.plot(grid_graph[r.present_loc].get_x(),grid_graph[r.present_loc].get_y(),color = 'white')
-                grid_graph[r.next_loc].body = ax.plot(grid_graph[r.next_loc].get_x(),grid_graph[r.next_loc].get_y(),color = 'green')
+            # for r in robots:
+            #     grid_graph[r.present_loc].body = ax.plot(grid_graph[r.present_loc].get_x(),grid_graph[r.present_loc].get_y(),color = 'white')
+            #     grid_graph[r.next_loc].body = ax.plot(grid_graph[r.next_loc].get_x(),grid_graph[r.next_loc].get_y(),color = 'green')
+            
             while not search_state: #   While Intruder is not found
-
+                for r in robots:
+                    if intruder.present_loc == r.present_loc:
+                        intruder.body.set_visible(False)
+                        for rb in robots:
+                            rb.body.set_visible(False)
+                        search_state = 1
+                        avg_time.append(t)
                 present_locs = [r.present_loc for r in robots]
                 update_prob_costs(grid_graph,present_locs)
-                plot_mesh(fig,ax,grid_graph,'cost map',without_bar=1)
+                plot_mesh(fig,ax,grid_graph,'cost map',grid_mesh,without_bar=1)
 
                 #   Robots update
 
                 
                 counter = 0
                 for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
-                    if robots[i].present_loc == robots[i].path_ahead[-1]:
+                    if robots[i].past_loc == robots[i].path_ahead[-1]:
                         counter += 1
                 if counter == len(robots):
                     all_reached = 1
@@ -1637,35 +1672,30 @@ if static_intruder_random_arena:
                         next_locs = np.random.choice(list(grid_graph),5,replace=False)
 
                     bipartite = {}
+                    grids = cp.copy(grid_graph)
                     for r in robots:
                         for d in next_locs:
-                            for g in grid_graph:
-                                grid_graph[g].robo_path_pre = None
-                                grid_graph[g].heuristics = 0
-                                grid_graph[g].distance = 0
-                                grid_graph[g].total_cost = 0
-                            path,weight = Astar(grid_graph,r.present_loc,d)
+                            for g in grids:
+                                grids[g].robo_path_pre = None
+
+                            path,weight = Astar(cp.copy(grids),r.present_loc,d)
                             bipartite[str(r.id)+d] = Edge(l=r,r=d,weight=weight)
-                    
+
                     robots = matching(bipartite,robots,next_locs,grid_graph)
                     
 
-                    for r in robots:
-                        grid_graph[r.present_loc].body = ax.plot(grid_graph[r.present_loc].get_x(),grid_graph[r.present_loc].get_y(),color = 'white')
-                        grid_graph[r.next_loc].body = ax.plot(grid_graph[r.next_loc].get_x(),grid_graph[r.next_loc].get_y(),color = 'green')
+                    # for r in robots:
+                    #     grid_graph[r.present_loc].body = ax.plot(grid_graph[r.present_loc].get_x(),grid_graph[r.present_loc].get_y(),color = 'white')
+                    #     grid_graph[r.next_loc].body = ax.plot(grid_graph[r.next_loc].get_x(),grid_graph[r.next_loc].get_y(),color = 'green')
                     for i in range(num_robots):
                         for g in grid_graph:
                             grid_graph[g].robo_path_pre = None
-                        path,_ = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc,fig,ax)
+                        path,_ = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
 
                         robots[i].path_history = robots[i].path_history + robots[i].path_ahead
                         robots[i].path_ahead = path
                         robots[i].path_progressor = 0
                 for i in range(num_robots): 
-                    
-                    # robots[i].next_loc = robots[i].loc(grid_graph)
-                    # while robots[i].next_loc == robots[i].present_loc:
-                    #     robots[i].next_loc = robots[i].loc(grid_graph)
                     
                     robots[i].update(grid_graph)
 
@@ -1675,18 +1705,23 @@ if static_intruder_random_arena:
                     robots[i].path_progressor += 1
                     if robots[i].path_progressor >= len(robots[i].path_ahead):
                         robots[i].path_progressor -= 1
+
+                    if len(robots[i].trajectory)<5:
+                        robots[i].trajectory.append([grid_graph[robots[i].present_loc].centroid[0],grid_graph[robots[i].present_loc].centroid[1]])
+                        if len(robots[i].trajectory)==4:
+                            robots[i].plott = ax.plot(np.array(robots[i].trajectory)[:,0],np.array(robots[i].trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
+
+                    else:
+                        robots[i].update_trajectory([grid_graph[robots[i].present_loc].centroid[0],grid_graph[robots[i].present_loc].centroid[1]])
+                        robots[i].plott[0].set_data(np.array(robots[i].trajectory)[:,0],np.array(robots[i].trajectory)[:,1])
+
                 # Intruder update
                 intruder.next_loc = intruder.present_loc
                 intruder.past_loc = intruder.present_loc
                 intruder.present_loc = intruder.next_loc
                 t += 1
-                for r in robots:
-                    if intruder.present_loc == r.present_loc:
-                        intruder.body.set_visible(False)
-                        for rb in robots:
-                            rb.body.set_visible(False)
-                        search_state = 1
-                        avg_time.append(t)
+                ax.set_xlim(40,190)
+                ax.set_ylim(40,190)
                 plt.show()
                 plt.pause(0.000001)     
             
