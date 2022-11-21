@@ -1287,36 +1287,6 @@ def Astar(grids,source,destination,fig = None,ax = None):
 
     return path
 
-# def plot_mesh(fig,ax,grid,title,without_bar=0):
-#     values_x = []
-#     values_y = []
-#     for g in grid:
-#         values_x = values_x + list(grid[g].get_x())
-#         values_y = values_y + list(grid[g].get_y())
-
-#     x = np.arange(min(values_x),max(values_x),grid_width)
-#     y = np.arange(min(values_y),max(values_y),grid_height)
-#     z = []
-#     for i in x:
-#         verti = []
-#         for j in y:
-#             if str([i, j]) in grid:
-#                 verti.append(grid[str([i,j])].heuristics)
-#             else:
-#                 verti.append(0)
-#         z.append(verti)
-#     z = np.array(z).T
-#     cs = ax.pcolormesh(x + grid_width/2,y + grid_height/2,z,shading='auto',cmap='inferno')
-#     cs.set_clim(0,1)
-#     if not without_bar:
-#         cbar = fig.colorbar(cs,orientation='vertical')
-#         cbar.set_ticks(np.arange(0,1.1,0.1))
-
-#     ax.set_aspect('equal', 'box')
-#     # ax.set_xticks([])
-#     # ax.set_yticks([])
-#     ax.set_title(title)
-
 def plot_mesh(fig,ax,grid,title,grid_mesh,without_bar=0):
     values_x = []
     values_y = []
@@ -1348,8 +1318,10 @@ def plot_mesh(fig,ax,grid,title,grid_mesh,without_bar=0):
         # ax.set_xticks([])
         # ax.set_yticks([])
         ax.set_title(title)
+        return grid_mesh
     else:
         grid_mesh.set_array(z)
+
  
 
 #   Setting up robot object
@@ -1453,9 +1425,10 @@ if _1_static_intruder_random_arena:
     # ax.axis('off')
     # ax.get_xaxis().set_visible(False)
     # ax.get_yaxis().set_visible(False)
+    ax = None
     boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30))#,ax)
 
-    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
+    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
 
     rectangles = []
     for r in rectangles_nodes:
@@ -1468,7 +1441,7 @@ if _1_static_intruder_random_arena:
     grid_width = 5
     area_reactangles = []
     for r in range(len(rectangles)):
-        ax = None
+        # ax = None
         grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
 
@@ -1476,10 +1449,10 @@ if _1_static_intruder_random_arena:
     agents = []
     # plt.ion()
     grid_mesh = None
-    once = 0
     for num_robots in range(1,2):#10,1):
         avg_time = []
-        for runs in range(10):
+        for runs in range(100):
+            print(runs)
             for g in grid_graph:
                 grid_graph[g].robo_path_pre = None
                 grid_graph[g].heuristics = 0
@@ -1505,9 +1478,8 @@ if _1_static_intruder_random_arena:
                         avg_time.append(t)
                 present_locs = [r.present_loc for r in robots]
                 update_prob_costs(grid_graph,present_locs)
-                # if not once:
-                #     plot_mesh(fig,ax,grid_graph,'cost map',grid_mesh,without_bar=0)
-                #     once = 1
+                # if grid_mesh is None:
+                #     grid_mesh = plot_mesh(fig,ax,grid_graph,'cost map',grid_mesh,without_bar=0)
                 # else:    
                 #     plot_mesh(fig,ax,grid_graph,'cost map',grid_mesh,without_bar=1)
 
@@ -1545,17 +1517,21 @@ if _1_static_intruder_random_arena:
                 intruder.past_loc = intruder.present_loc
                 intruder.present_loc = intruder.next_loc
                 t += 1
-                
+                # if runs==1 and t==620:
+                #     path = os.getcwd()
+                #     plt.savefig(path+'/results/1RIS_s_random.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
+
                 # ax.set_xlim(40,190)
                 # ax.set_ylim(40,190)
                 # plt.show()
-                # plt.pause(0.000001)     
+                # plt.pause(0.0000001)     
             
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
 
-    fileObject = open(path_+'/results/1RIS_random', 'wb')
+    fileObject = open(path_+'/results/1RIS_s_random', 'wb')
     pkl.dump(np.array(avg_time),fileObject)
+    fileObject.close()
 
 _1_dynamic_intruder_random_arena = 0
 if _1_dynamic_intruder_random_arena:
@@ -1567,9 +1543,10 @@ if _1_dynamic_intruder_random_arena:
     # ax.axis('off')
     # ax.get_xaxis().set_visible(False)
     # ax.get_yaxis().set_visible(False)
+    ax = None
     boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30))#,ax)
 
-    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
+    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
 
     rectangles = []
     for r in rectangles_nodes:
@@ -1582,18 +1559,17 @@ if _1_dynamic_intruder_random_arena:
     grid_width = 5
     area_reactangles = []
     for r in range(len(rectangles)):
-        ax = None
+        # ax = None
         grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
 
     time = []
     agents = []
     # plt.ion()
-    once = 0
     grid_mesh = None
     for num_robots in range(1,2):
         avg_time = []
-        for runs in range(10):
+        for runs in range(100):
             for g in grid_graph:
                 grid_graph[g].robo_path_pre = None
                 grid_graph[g].heuristics = 0
@@ -1620,9 +1596,8 @@ if _1_dynamic_intruder_random_arena:
                         avg_time.append(t)
                 present_locs = [r.present_loc for r in robots]
                 update_prob_costs(grid_graph,present_locs)
-                # if not once:
-                #     plot_mesh(fig,ax,grid_graph,'cost map',grid_mesh,without_bar=0)
-                #     once = 1
+                # if grid_mesh is None:
+                #     grid_mesh = plot_mesh(fig,ax,grid_graph,'cost map',grid_mesh,without_bar=0)
                 # else:
                 #     plot_mesh(fig,ax,grid_graph,'cost map',grid_mesh,without_bar=1)
                 #   Robots update
@@ -1668,6 +1643,9 @@ if _1_dynamic_intruder_random_arena:
                 #     intruder.plott[0].set_data(np.array(intruder.trajectory)[:,0],np.array(intruder.trajectory)[:,1])
 
                 t += 1
+                # if runs==1 and t==60:
+                #     path = os.getcwd()
+                #     plt.savefig(path+'/results/1RIS_d_random.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
 
                 # ax.set_xlim(40,190)
                 # ax.set_ylim(40,190)
@@ -1677,7 +1655,7 @@ if _1_dynamic_intruder_random_arena:
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
 
-    fileObject = open(path_+'/results/1RIS_random_d', 'wb')
+    fileObject = open(path_+'/results/1RIS_d_random', 'wb')
     pkl.dump(np.array(avg_time),fileObject)
     fileObject.close()
 
@@ -1720,7 +1698,7 @@ if static_intruder_random_arena:
     once = 0
     for num_robots in range(1,10,1):
         avg_time = []
-        for runs in range(10):
+        for runs in range(100):
             for g in grid_graph:
                 grid_graph[g].robo_path_pre = None
                 grid_graph[g].heuristics = 0
@@ -1795,7 +1773,7 @@ if static_intruder_random_arena:
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
 
-    fileObject = open(path_+'/results/MRIS_random_s', 'wb')
+    fileObject = open(path_+'/results/MRIS_s_random', 'wb')
     pkl.dump(np.array(time),fileObject)
     pkl.dump(np.array(agents),fileObject)
     fileObject.close()
@@ -1830,7 +1808,7 @@ if dynamic_intruder_random_arena:
 
     for num_robots in range(1,10,1):
         avg_time = []
-        for runs in range(10):
+        for runs in range(100):
             for g in grid_graph:
                 grid_graph[g].robo_path_pre = None
                 grid_graph[g].heuristics = 0
@@ -1888,7 +1866,7 @@ if dynamic_intruder_random_arena:
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
 
-    fileObject = open(path_+'/results/MRIS_random_d', 'wb')
+    fileObject = open(path_+'/results/MRIS_d_random', 'wb')
     pkl.dump(np.array(time),fileObject)
     pkl.dump(np.array(agents),fileObject)
     fileObject.close()
@@ -1898,32 +1876,35 @@ if dynamic_intruder_random_arena:
 single_searcher_plot_results = 0
 if single_searcher_plot_results:
     path = os.getcwd()
-    file = open(path+'/results/MRIS_random_s', 'rb')
+    file = open(path+'/results/1RIS_d_random', 'rb')
     obj = pkl.load(file)
 
     plt.ioff()
     fig,ax = plt.subplots()
     
-    ax.plot(obj,range(1,10),linewidth=4)
-    # ax.plot(range(10),obj,linewidth=4)
-    # ax.plot(range(9),[np.sum(obj)/len(obj) for i in range(10)],linewidth=4)
+    ax.scatter(range(100),obj,linewidth=4,label='Data')
+    ax.plot(range(100),[np.sum(obj)/len(obj) for i in range(100)],linewidth=4,label='Mean: '+str(np.sum(obj)/len(obj)),color='orange')
     t_font = {'weight': 'bold',
         'size': 15}
     ax_font = {'weight': 'bold',
         'size': 20}
-    plt.title('SRIS: Random; static intruder',fontdict=t_font)
+    leg_font = {'weight': 'bold',
+        'size': 12}
+    plt.title('1RDIS: Random Search',fontdict=t_font)
     plt.xlabel('Runs',fontdict=ax_font)
     plt.ylabel('Search Time',fontdict=ax_font)
+    plt.ticklabel_format(style='sci',scilimits=(0,3))
     plt.xticks(fontsize=15,fontweight='bold')
     plt.yticks(fontsize=15,fontweight='bold')
     plt.tight_layout()
-    plt.savefig(path+'/results/MRIS_random_s_plot.png')
+    plt.legend(prop=leg_font)
+    plt.savefig(path+'/results/1RIS_d_random_plot.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
     plt.show()
 
 multi_searcher_plot_results = 1
 if multi_searcher_plot_results:
     path = os.getcwd()
-    file = open(path+'/results/MRIS_random_s', 'rb')
+    file = open(path+'/results/MRIS_s_random', 'rb')
     obj = pkl.load(file)
 
     plt.ioff()
@@ -1936,16 +1917,18 @@ if multi_searcher_plot_results:
         'size': 15}
     ax_font = {'weight': 'bold',
         'size': 20}
-    plt.title('SRIS: Random; static intruder',fontdict=t_font)
-    plt.xlabel('Runs',fontdict=ax_font)
-    plt.ylabel('Search Time',fontdict=ax_font)
+    leg_font = {'weight': 'bold',
+        'size': 12}
+    plt.title('MRIS: Random Search',fontdict=t_font)
+    plt.xlabel('Average search time',fontdict=ax_font)
+    plt.ylabel('Search Number',fontdict=ax_font)
     plt.xticks(fontsize=15,fontweight='bold')
     plt.yticks(fontsize=15,fontweight='bold')
     plt.tight_layout()
     file.close()
     # plt.savefig(path+'/results/MRIS_random_s_plot.png')
     # plt.show()
-    file = open(path+'/results/MRIS_random_d', 'rb')
+    file = open(path+'/results/MRIS_d_random', 'rb')
     obj = pkl.load(file)
 
     plt.ioff()
@@ -1958,14 +1941,16 @@ if multi_searcher_plot_results:
         'size': 15}
     ax_font = {'weight': 'bold',
         'size': 20}
-    plt.title('SRIS: Random; static intruder',fontdict=t_font)
-    plt.xlabel('Runs',fontdict=ax_font)
-    plt.ylabel('Search Time',fontdict=ax_font)
+    leg_font = {'weight': 'bold',
+        'size': 12}
+    plt.title('MRIS: Random Search',fontdict=t_font)
+    plt.xlabel('Average search time',fontdict=ax_font)
+    plt.ylabel('Search Number',fontdict=ax_font)
     plt.xticks(fontsize=15,fontweight='bold')
     plt.yticks(fontsize=15,fontweight='bold')
     plt.tight_layout()
-    plt.legend()
-    plt.savefig(path+'/results/MRIS_random_sd_plot.png')
+    plt.legend(prop=leg_font)
+    plt.savefig(path+'/results/MRIS_random_plot.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
     plt.show()
 
 # static_intruder = 0
