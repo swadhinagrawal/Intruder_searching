@@ -1569,7 +1569,8 @@ def update_prob_costs(grids,present_locs):
                 grids[g].heuristics += 50/len(grids)
             # else:
             #     grids[g].probability += 0#1/(arena_h*arena_w*len(present_locs))
-static_intruder_random_arena = 0
+
+static_intruder_random_arena = 1
 if static_intruder_random_arena:
     path_ = os.getcwd()
     # fig,ax = plt.subplots(frameon = False)
@@ -1602,9 +1603,11 @@ if static_intruder_random_arena:
     agents = []
     plt.ion()
     grid_mesh = None
-    for num_robots in range(2,10,1):
+    data = []
+    for num_robots in range(2,70,5):
         print(num_robots)
         avg_time = []
+        data_run = []
         for runs in range(100):
             for g in grid_graph:
                 grid_graph[g].robo_path_pre = None
@@ -1705,13 +1708,13 @@ if static_intruder_random_arena:
                 # ax.set_ylim(40,190)
                 # plt.show()
                 # plt.pause(0.000001)     
-            
+            data_run.append([num_robots,t])
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
-
-    fileObject = open(path_+'/results/MRIS_TA_s_maxi', 'wb')
-    pkl.dump(np.array(time),fileObject)
-    pkl.dump(np.array(agents),fileObject)
+        data.append(data_run)
+    fileObject = open(path_+'/results/MRIS_s_crs', 'wb')
+    pkl.dump(np.array(data),fileObject)
+    # pkl.dump(np.array(agents),fileObject)
     fileObject.close()
 
 dynamic_intruder_random_arena = 0
@@ -1741,10 +1744,11 @@ if dynamic_intruder_random_arena:
     time = []
     agents = []
     plt.ion()
-
-    for num_robots in range(2,10,1):
+    data = []
+    for num_robots in range(2,70,5):
         print(num_robots)
         avg_time = []
+        data_run = []
         for runs in range(100):
             for g in grid_graph:
                 grid_graph[g].robo_path_pre = None
@@ -1831,16 +1835,16 @@ if dynamic_intruder_random_arena:
                 
                 # plt.show()
                 # plt.pause(0.000001)     
-            
+            data_run.append([num_robots,t])
         time.append(np.sum(avg_time)/len(avg_time))  #   Store time taken to find the intruder
         agents.append(num_robots)   #   Store number of robots utilized for search of static intruder
-
-    fileObject = open(path_+'/results/MRIS_TA_d_maxi', 'wb')
-    pkl.dump(np.array(time),fileObject)
-    pkl.dump(np.array(agents),fileObject)
+        data.append(data_run)
+    fileObject = open(path_+'/results/MRIS_d_crs', 'wb')
+    pkl.dump(np.array(data),fileObject)
+    # pkl.dump(np.array(agents),fileObject)
     fileObject.close()
 
-multi_searcher_plot_results = 1
+multi_searcher_plot_results = 0
 if multi_searcher_plot_results:
     path = os.getcwd()
     file = open(path+'/results/MRIS_TA_s_maxi', 'rb')

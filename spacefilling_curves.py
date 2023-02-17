@@ -24,6 +24,22 @@ class Node:
             return boundary
         return boundary
 
+class Edge:
+    def __init__(self,l,r):
+        self.l_nei = None
+        self.r_nei = None
+
+        self.l = l
+        self.r = r
+    
+    def get_loop(self,edges):
+        boundary = np.array([self.r])
+        if self.r_nei != None:
+            boundary = np.concatenate((boundary, edges[self.r_nei].get_loop(edges)),axis=0)
+        else:
+            return boundary
+        return boundary
+
 class Grid:
     def __init__(self,tl,bl,tr,br):
         self.l_nei = None
@@ -48,6 +64,8 @@ class Grid:
         self.passage_b = 0
 
         self.rectangle_num = None
+        self.border_grid = 0
+        self.path_connector = None
     
     def get_centroid(self):
         self.centroid = (self.tl+self.bl+self.tr+self.br)/4.0
@@ -61,12 +79,11 @@ class Grid:
     def get_corners(self):
         return np.array([self.bl,self.br,self.tr,self.tl])
 
-def Inflate_Cut_algorithm(num_vertices,ax=None):
+def Inflate_Cut_algorithm(num_vertices,g_size=10,ax=None):
     '''
     Input: Num_vertices (Must be even and >=4)
     Returns: Array of vertices forming the random simple rectilinear region
     '''
-
     def polygon_boundary(cells,ax):
         def get_edge(cell,side,one_vertex = 1):
             if side == 't':
@@ -154,7 +171,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                         if len(edges) == 0:
                             start_edge = str(len(edges))
                             end_edge = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                         else:
                             for e in [start_edge,end_edge]:
                                 ll = np.linalg.norm(np.array(edge[0])-edges[e].l)
@@ -164,25 +181,25 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                                 if ll == 0:
                                     start_edge = str(len(edges))
                                     edges[e].l_nei = str(len(edges))
-                                    edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                    edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                                     edges[str(len(edges)-1)].r_nei = e
                                     break
                                 elif lr == 0:
                                     end_edge = str(len(edges))
                                     edges[e].r_nei = str(len(edges))
-                                    edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                    edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                                     edges[str(len(edges)-1)].l_nei = e
                                     break
                                 elif rl == 0:
                                     start_edge = str(len(edges))
                                     edges[e].l_nei = str(len(edges))
-                                    edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                    edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                                     edges[str(len(edges)-1)].r_nei = e
                                     break
                                 elif rr == 0:
                                     end_edge = str(len(edges))
                                     edges[e].r_nei = str(len(edges))
-                                    edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                    edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                                     edges[str(len(edges)-1)].l_nei = e
                                     break
                                 elif e == end_edge and ll!=0 and rl!=0 and lr!=0 and rr!=0:
@@ -200,28 +217,28 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                             if ll == 0:
                                 start_edge = str(len(edges))
                                 edges[e].l_nei = str(len(edges))
-                                edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                                 edges[str(len(edges)-1)].r_nei = e
                                 del backup[i]
                                 break
                             elif lr == 0:
                                 end_edge = str(len(edges))
                                 edges[e].r_nei = str(len(edges))
-                                edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                                 edges[str(len(edges)-1)].l_nei = e
                                 del backup[i]
                                 break
                             elif rl == 0:
                                 start_edge = str(len(edges))
                                 edges[e].l_nei = str(len(edges))
-                                edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                                edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                                 edges[str(len(edges)-1)].r_nei = e
                                 del backup[i]
                                 break
                             elif rr == 0:
                                 end_edge = str(len(edges))
                                 edges[e].r_nei = str(len(edges))
-                                edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                                edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                                 edges[str(len(edges)-1)].l_nei = e
                                 del backup[i]
                                 break
@@ -244,28 +261,28 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                         if ll == 0:
                             start_edge = str(len(edges))
                             edges[e].l_nei = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                             edges[str(len(edges)-1)].r_nei = e
                             del backup[i]
                             break
                         elif lr == 0:
                             end_edge = str(len(edges))
                             edges[e].r_nei = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                             edges[str(len(edges)-1)].l_nei = e
                             del backup[i]
                             break
                         elif rl == 0:
                             start_edge = str(len(edges))
                             edges[e].l_nei = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[0]),r=np.array(edge[1]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[0]),r=np.array(edge[1]))
                             edges[str(len(edges)-1)].r_nei = e
                             del backup[i]
                             break
                         elif rr == 0:
                             end_edge = str(len(edges))
                             edges[e].r_nei = str(len(edges))
-                            edges[str(len(edges))] = Node(l=np.array(edge[1]),r=np.array(edge[0]))
+                            edges[str(len(edges))] = Edge(l=np.array(edge[1]),r=np.array(edge[0]))
                             edges[str(len(edges)-1)].l_nei = e
                             del backup[i]
                             break
@@ -327,7 +344,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
         # plt.show()
         # ax.clear()
         if ax is not None:
-            ax.plot(boundary[:,0],boundary[:,1])
+            ax.plot(boundary[:,0],boundary[:,1],color = 'black')
             # ax.scatter(boundary[:,0],boundary[:,1],color = 'black')
             plt.show()
         return boundary, edges, start_edge, end_edge
@@ -635,7 +652,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
 
         return p,cutting
 
-    def Inflate(p,c,ax=None):
+    def Inflate(p,c,g_size=10,ax=None):
         C_tr = p[str(c)].tr
         
         # ax.clear()            
@@ -678,24 +695,24 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
             if np.sum(marker[:,3]) == 4:
                 # NW
                 for vertex in range(len(grid_corners)):
-                    grid_corners[vertex,1] += 10
+                    grid_corners[vertex,1] += g_size
 
             if np.sum(marker[:,1]) == 4:
                 # SE
                 for vertex in range(len(grid_corners)):
-                    grid_corners[vertex,0] += 10
+                    grid_corners[vertex,0] += g_size
             
             if np.sum(marker[:,2]) >= 1:
                 # NE
                 for vertex in range(len(grid_corners)):
-                    grid_corners[vertex] = grid_corners[vertex] + np.array([10,10])
+                    grid_corners[vertex] = grid_corners[vertex] + np.array([g_size,g_size])
             
             if grid_corners[2,1] == C_tr[1] and grid_corners[3,1] == C_tr[1] and grid_corners[0,0] >= C_tr[0]:
                 #   +x bottom all
                 for vertex in range(len(grid_corners)):
-                    grid_corners[vertex,0] += 10
+                    grid_corners[vertex,0] += g_size
 
-                t = Grid(bl = grid_corners[3], br = grid_corners[2], tl = grid_corners[3] + np.array([0,10]), tr = grid_corners[2] + np.array([0,10]))
+                t = Grid(bl = grid_corners[3], br = grid_corners[2], tl = grid_corners[3] + np.array([0,g_size]), tr = grid_corners[2] + np.array([0,g_size]))
                 t.b_nei = grid
                 if p[grid].t_nei is not None:
                     t.t_nei = p[grid].t_nei
@@ -712,7 +729,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
             if grid_corners[2,1] == C_tr[1] and grid_corners[3,1] == C_tr[1] and grid_corners[0,0] < C_tr[0]:
                 #   -x bottom all
 
-                a = Grid(bl = grid_corners[3], br = grid_corners[2], tl = grid_corners[3] + np.array([0,10]), tr = grid_corners[2] + np.array([0,10]))
+                a = Grid(bl = grid_corners[3], br = grid_corners[2], tl = grid_corners[3] + np.array([0,g_size]), tr = grid_corners[2] + np.array([0,g_size]))
 
                 a.b_nei = grid
                 if p[grid].t_nei is not None:
@@ -729,7 +746,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
             if grid_corners[1,0] == C_tr[0] and grid_corners[2,0] == C_tr[0] and grid_corners[3,1] <= C_tr[1]:
                 #   -y left all
 
-                a = Grid(bl = grid_corners[1], br = grid_corners[1] + np.array([10,0]), tl = grid_corners[2], tr = grid_corners[2] + np.array([10,0]))
+                a = Grid(bl = grid_corners[1], br = grid_corners[1] + np.array([g_size,0]), tl = grid_corners[2], tr = grid_corners[2] + np.array([g_size,0]))
 
                 a.l_nei = grid
                 if p[grid].r_nei is not None:
@@ -744,7 +761,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
                 # plt.show()
 
                 if grid_corners[3,1] == C_tr[1]:
-                    a = Grid(bl = grid_corners[2], br = grid_corners[2] + np.array([10,0]), tl = grid_corners[2] + np.array([0,10]), tr = grid_corners[2] + np.array([10,10]))
+                    a = Grid(bl = grid_corners[2], br = grid_corners[2] + np.array([g_size,0]), tl = grid_corners[2] + np.array([0,g_size]), tr = grid_corners[2] + np.array([g_size,g_size]))
 
                     a.l_nei = p[grid].t_nei
                     a.b_nei = p[grid].r_nei
@@ -761,19 +778,19 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
             if grid_corners[0,0] == C_tr[0] and grid_corners[3,0] == C_tr[0] and grid_corners[3,1] < C_tr[1]:
                 #   -y right except first
                 for vertex in range(len(grid_corners)):
-                    grid_corners[vertex,0] += 10
+                    grid_corners[vertex,0] += g_size
             
             if grid_corners[0,1] == C_tr[1] and grid_corners[1,1] == C_tr[1] and grid_corners[2,0] < C_tr[0]:
                 #   -x top except first
                 for vertex in range(len(grid_corners)):
-                    grid_corners[vertex,1] += 10
+                    grid_corners[vertex,1] += g_size
 
             if grid_corners[1,0] == C_tr[0] and grid_corners[2,0] == C_tr[0] and grid_corners[1,1] >= C_tr[1]:
                 #   +y left excluding first cell
                 for vertex in range(len(grid_corners)):
-                    grid_corners[vertex,1] += 10
+                    grid_corners[vertex,1] += g_size
 
-                a = Grid(bl = grid_corners[1], br = grid_corners[1] + np.array([10,0]), tl = grid_corners[2], tr = grid_corners[2] + np.array([10,0]))
+                a = Grid(bl = grid_corners[1], br = grid_corners[1] + np.array([g_size,0]), tl = grid_corners[2], tr = grid_corners[2] + np.array([g_size,0]))
                 
                 a.l_nei = grid
                 if p[grid].r_nei is not None:
@@ -912,7 +929,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
 
     r = (num_vertices/2) - 2
 
-    P = {'0': Grid(bl = np.array([50,50]), br = np.array([60,50]), tr = np.array([60,60]), tl = np.array([50,60]))}   # Unit square
+    P = {'0': Grid(bl = np.array([50,50]), br = np.array([50+g_size,50]), tr = np.array([50+g_size,50+g_size]), tl = np.array([50,50+g_size]))}   # Unit square
 
     plt.ion()
     # fig,ax = plt.subplots()
@@ -927,7 +944,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
             p_trial = cp.copy(P)
             random_c = np.random.randint(0,len(p_trial))
             random_c = int(list(p_trial.items())[random_c][0])
-            p_trial = Inflate(p_trial,random_c)
+            p_trial = Inflate(p_trial,random_c,g_size=g_size)
 
             p_trial, cut_success = Cut(p_trial,random_c)
         P = p_trial
@@ -935,7 +952,7 @@ def Inflate_Cut_algorithm(num_vertices,ax=None):
         polygon_boundary(P,ax1)
         r -= 1
     boundary,edges,start_edge,end_edge = polygon_boundary(P,ax)
-    return boundary,edges,start_edge,end_edge,P
+    return boundary,edges,start_edge,end_edge , P
 
 # Decomposition
 
@@ -1065,6 +1082,7 @@ def get_rectangles(p,vertex_set,ax):
                 delete_these.append(g)
             elif min(x) >= min(rectangles[-1].get_x()) and max(x) <= max(rectangles[-1].get_x()) and min(y) >= min(rectangles[-1].get_y()) and max(y) <= max(rectangles[-1].get_y()):
                 delete_border_grids.append(g)
+                p[g].border_grid = 1
                 p[g].rectangle_num = len(rectangles)-1
         
         for gg in delete_these:
@@ -1132,7 +1150,7 @@ def get_rectangles(p,vertex_set,ax):
         for gg in delete_border_grids:
             del grids[gg]
 
-        # plt.show()
+        plt.show()
     
     # for g in p:
     #     # ax.plot(p[g].get_x(),p[g].get_y(),color='orange')
@@ -1167,6 +1185,7 @@ def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax,grid_graph,grids
                 grid_graph[str([i,j])].b_nei = str([i,j-inner_grid_height])
             if j+inner_grid_height<y2:
                 grid_graph[str([i,j])].t_nei = str([i,j+inner_grid_height])
+            grid_graph[str([i, j])].rectangle_num = rec_num
             if i == 99 and j == 90:
                 print(' ')
             if i == x1 or i == x2-inner_grid_width or j == y1 or j == y2-inner_grid_height:
@@ -1197,7 +1216,7 @@ def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax,grid_graph,grids
             grid_graph[str([int(rectangular_hilbert_curves[0][i] - inner_grid_width/2), int(rectangular_hilbert_curves[1][i] - inner_grid_height/2)])].path_pre = str([int(rectangular_hilbert_curves[0][i-1] - inner_grid_width/2), int(rectangular_hilbert_curves[1][i-1] - inner_grid_height/2)])
         if i+1 < len(rectangular_hilbert_curves[0]):
             grid_graph[str([int(rectangular_hilbert_curves[0][i] - inner_grid_width/2), int(rectangular_hilbert_curves[1][i] - inner_grid_height/2)])].path_post = str([int(rectangular_hilbert_curves[0][i+1] - inner_grid_width/2), int(rectangular_hilbert_curves[1][i+1] - inner_grid_height/2)])
-    
+
     return grid_graph,centroids,rectangular_hilbert_curves
 
 def gilbert2d(width, height):
@@ -1356,7 +1375,7 @@ def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_heigh
 #     counter += 1
 #     return robots
 
-# # k searcher 
+# k searcher 
 # def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
 #     robots = [] #   Spawn Robots
 
@@ -1371,8 +1390,9 @@ def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_heigh
 #             robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
 
 #             grids[robots[len(robots)-1].present_loc].robot_home = True
-#             robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=2)
-#             ax.add_artist(robots[len(robots)-1].body)
+#             if ax is not None:
+#                 robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=2)
+#                 ax.add_artist(robots[len(robots)-1].body)
 #             counter += 1
 #     return robots
 
@@ -1383,13 +1403,13 @@ static_intruder = 0
 if static_intruder:
     path_ = os.getcwd()
     performance = []
-    # fig,ax = plt.subplots()
-    # plt.box(False)
-    # ax.set_aspect('equal')
-    # ax.axis('off')
-    # ax.get_xaxis().set_visible(False)
-    # ax.get_yaxis().set_visible(False)
-    ax = None
+    fig,ax = plt.subplots()
+    plt.box(False)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    # ax = None
     boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
@@ -1397,6 +1417,7 @@ if static_intruder:
     rectangles = []
     for r in rectangles_nodes:
         rectangles.append(r.get_corners())
+        # ax.plot(r.get_x(),r.get_y())
 
     # plt.pause(1)
     k_max = 0
@@ -1408,10 +1429,11 @@ if static_intruder:
 
         k_max += len(centroids)
         area_reactangles.append(len(centroids))
+        # ax.plot(hsc[0],hsc[1])
         HSC = HSC + [np.array(hsc)]
 
-    plt.show()
-    # plt.pause(1)
+        plt.show()
+
     for runs in range(100):
         # print('runs',runs)
         min_robo_req = 0
@@ -1441,50 +1463,54 @@ if static_intruder:
                             rb.mode = 'b'
                         elif rb.mode == 'b':
                             rb.mode = 'f'
-                    elif rb.mode == 'f' and grid_graph[rb.present_loc].path_post == None:
+                    elif rb.mode == 'f' and grid_graph[rb.present_loc].path_post == None and grid_graph[rb.present_loc].path_connector == None:
                         rb.mode = 'b'
-                    elif rb.mode == 'b' and grid_graph[rb.present_loc].path_pre == None:
+                    elif rb.mode == 'b' and grid_graph[rb.present_loc].path_pre == None and grid_graph[rb.present_loc].path_connector == None:
                         rb.mode = 'f'
                     if rb.mode == 'f':
                         if grid_graph[rb.present_loc].path_post != None:
                             rb.present_loc = grid_graph[rb.present_loc].path_post
+                        elif grid_graph[rb.present_loc].path_connector != None:
+                            rb.present_loc = grid_graph[rb.present_loc].path_connector
                     else:
                         if grid_graph[rb.present_loc].path_pre!= None:
                             rb.present_loc = grid_graph[rb.present_loc].path_pre
-            #         rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
-            #         if len(rb.trajectory)<5:
-            #             rb.trajectory.append([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-            #             if len(rb.trajectory)==4:
-            #                 rb.plott = ax.plot(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
+                        elif grid_graph[rb.present_loc].path_connector != None:
+                            rb.present_loc = grid_graph[rb.present_loc].path_connector
+                    rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
+                    if len(rb.trajectory)<5:
+                        rb.trajectory.append([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
+                        if len(rb.trajectory)==4:
+                            rb.plott = ax.plot(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
 
-            #         else:
-            #             rb.update_trajectory([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-            #             rb.plott[0].set_data(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1])
-            # ax.set_xlim(40,190)
-            # ax.set_ylim(40,190)
-            # plt.show()
-            # plt.pause(0.000001)
+                    else:
+                        rb.update_trajectory([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
+                        rb.plott[0].set_data(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1])
+            ax.set_xlim(40,190)
+            ax.set_ylim(40,190)
+            plt.show()
+            plt.pause(0.000001)
             # if runs==1 and t==20:
             #     path = os.getcwd()
             #     plt.savefig(path+'/results/kRIS_s_sfc_guarded.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
 
             t += 1
             if intruder_found_state:
-                # intruder.body.set_visible(False)
-                # for rb in robots:
-                #     rb.body.set_visible(False)
-                #     if rb.plott != None:
-                #         rb.plott[0].set_visible(False)
+                intruder.body.set_visible(False)
+                for rb in robots:
+                    rb.body.set_visible(False)
+                    if rb.plott != None:
+                        rb.plott[0].set_visible(False)
                 searchers_time_num[len(robots)] = t - 1
                 break
         performance.append([grid_graph,searchers_time_num])
-        # for rb in robots:
-        #     rb.body.set_visible(False)
-        #     if rb.plott != None:
-        #         rb.plott[0].set_visible(False)
-    fileObject = open(path_+'/results/kRIS_s_sfc_guarded', 'wb')
-    pkl.dump(performance,fileObject)
-    fileObject.close()
+        for rb in robots:
+            rb.body.set_visible(False)
+            if rb.plott != None:
+                rb.plott[0].set_visible(False)
+    # fileObject = open(path_+'/results/kRIS_s_sfc_guarded', 'wb')
+    # pkl.dump(performance,fileObject)
+    # fileObject.close()
 
 dynamic_intruder = 0
 if dynamic_intruder:
@@ -1618,7 +1644,7 @@ if dynamic_intruder:
     fileObject.close()
 
 # Multi searcher 
-static_intruder = 1
+static_intruder = 0
 if static_intruder:
     path = os.getcwd()
     performance = []
@@ -1628,7 +1654,7 @@ if static_intruder:
     # ax.axis('off')
     # ax.get_xaxis().set_visible(False)
     # ax.get_yaxis().set_visible(False)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30))#,ax)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),g_size=10)#,ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
 
@@ -1640,10 +1666,12 @@ if static_intruder:
     k_max = 0
     grid_graph = {}
     HSC = []
+    grid_height = 5
+    grid_width = 5
     area_reactangles = []
     for r in range(len(rectangles)):
         ax = None
-        grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),5,5,ax,grid_graph,grids,r)
+        grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
         k_max += len(centroids)
         area_reactangles.append(len(centroids))
@@ -1651,21 +1679,25 @@ if static_intruder:
 
     plt.show()
     # plt.pause(1)
-    for runs in range(100):
-        print('runs',runs)
-        min_robo_req = 0
-        for g in grid_graph:
-            if grid_graph[g].passage:
-                min_robo_req += 1
+    data = []
+    
+    min_robo_req = 0
+    for g in grid_graph:
+        if grid_graph[g].passage:
+            min_robo_req += 1
+    for k in range(min_robo_req+len(area_reactangles),k_max):
+        print(k)
+        
         
         searchers_time_num = {}#    key = searcher number
-        for k in range(min_robo_req+len(area_reactangles),k_max):
-            print('num_robos',k)
+        data_run = []
+        for runs in range(100):
+            # print('num_robos',k)
             for g in grid_graph:
                 if grid_graph[g].robot_home:
                     grid_graph[g].robot_home = False
             intruder = intruder_(grid_graph,ax)
-            robots = searchers(k,grid_graph,area_reactangles,HSC,5,5,ax)
+            robots = searchers(k,grid_graph,area_reactangles,HSC,grid_width,grid_height,ax)
             intruder_found_state = False
             t = 0
             while not intruder_found_state:
@@ -1710,13 +1742,14 @@ if static_intruder:
                     #         rb.plott[0].set_visible(False)
                     searchers_time_num[len(robots)] = t - 1
                     break
-        performance.append([grid_graph,searchers_time_num])
+            data_run.append([k,t])
+        data.append(data_run)
         # for rb in robots:
         #     rb.body.set_visible(False)
         #     if rb.plott != None:
         #         rb.plott[0].set_visible(False)
-    fileObject = open(path+'/results/multi_robot_with_guards_s_intruder_sfc', 'wb')
-    pkl.dump(performance,fileObject)
+    fileObject = open(path+'/results/MRGIS_s_sfc', 'wb')
+    pkl.dump(data,fileObject)
     fileObject.close()
 
 dynamic_intruder = 1
@@ -1739,7 +1772,7 @@ if dynamic_intruder:
     # ax.axis('off')
     # ax.get_xaxis().set_visible(False)
     # ax.get_yaxis().set_visible(False)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30))#,ax)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),g_size=10)#,ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
 
@@ -1751,10 +1784,12 @@ if dynamic_intruder:
     k_max = 0
     grid_graph = {}
     HSC = []
+    grid_height = 5
+    grid_width = 5
     area_reactangles = []
     for r in range(len(rectangles)):
         ax = None
-        grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),5,5,ax,grid_graph,grids,r)
+        grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
         k_max += len(centroids)
         area_reactangles.append(len(centroids))
@@ -1762,20 +1797,22 @@ if dynamic_intruder:
 
     plt.show()
     # plt.pause(1)
-    for runs in range(100):
-        
-        min_robo_req = 0
-        for g in grid_graph:
-            if grid_graph[g].passage:
-                min_robo_req += 1
+    data = []
+    min_robo_req = 0
+    for g in grid_graph:
+        if grid_graph[g].passage:
+            min_robo_req += 1
+    for k in range(min_robo_req+len(area_reactangles),k_max):
+        print(k)
 
         searchers_time_num = {}#    key = searcher number
-        for k in range(min_robo_req+len(area_reactangles),k_max):
+        data_run = []
+        for runs in range(100):
             for g in grid_graph:
                 if grid_graph[g].robot_home:
                     grid_graph[g].robot_home = False
             intruder = intruder_(grid_graph,ax)
-            robots = searchers(k,grid_graph,area_reactangles,HSC,5,5,ax)
+            robots = searchers(k,grid_graph,area_reactangles,HSC,grid_width,grid_height,ax)
             intruder_found_state = False
             t = 0
             while not intruder_found_state:
@@ -1836,7 +1873,8 @@ if dynamic_intruder:
                     #         rb.plott[0].set_visible(False)
                     searchers_time_num[len(robots)] = t - 1
                     break
-        performance.append([grid_graph,searchers_time_num])
+            data_run.append([k,t])
+        data.append(data_run)
         # intruder.body.set_visible(False)
         # if intruder.plott != None:
         #     intruder.plott[0].set_visible(False)
@@ -1844,8 +1882,8 @@ if dynamic_intruder:
         #     rb.body.set_visible(False)
         #     if rb.plott != None:
         #         rb.plott[0].set_visible(False)
-    fileObject = open(path+'/results/multi_robot_with_guards_d_intruder_sfc', 'wb')
-    pkl.dump(performance,fileObject)
+    fileObject = open(path+'/results/MRGIS_d_sfc', 'wb')
+    pkl.dump(data,fileObject)
     fileObject.close()
 
 
@@ -1951,7 +1989,7 @@ if k_searcher_plot_results:
     plt.savefig(path+'/results/kRIS_d_sfc_guarded_plot.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
     plt.show()
 
-multi_searcher_plot_results = 1
+multi_searcher_plot_results = 0
 if multi_searcher_plot_results:
     path = os.getcwd()
     file = open(path+'/results/multi_robot_with_guards_s_intruder_sfc','rb')
@@ -2031,4 +2069,3 @@ if multi_searcher_plot_results:
     plt.legend(prop=leg_font)
     plt.savefig(path+'/results/MRIS_sfc.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
     plt.show()
-
