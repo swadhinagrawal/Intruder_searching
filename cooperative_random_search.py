@@ -2445,7 +2445,7 @@ def update_prob_costs(grids,present_locs):
             # else:
             #     grids[g].probability += 0#1/(arena_h*arena_w*len(present_locs))
 
-static_intruder_random_arena = 1
+static_intruder_random_arena = 0
 if static_intruder_random_arena:
     path_ = os.getcwd()
     # fig,ax = plt.subplots(frameon = False)
@@ -2557,7 +2557,7 @@ if static_intruder_random_arena:
                         
                         
                         # path,_ = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
-                        if r.present_loc != d:
+                        if robots[i].present_loc!=robots[i].next_loc:
                             path,_ = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
                         else:
                             path = [robots[i].next_loc]
@@ -2603,13 +2603,13 @@ if static_intruder_random_arena:
     # pkl.dump(np.array(agents),fileObject)
     fileObject.close()
 
-dynamic_intruder_random_arena = 0
+dynamic_intruder_random_arena = 1
 if dynamic_intruder_random_arena:
     # fig,ax = plt.subplots()
     # ax.set_aspect('equal')
     path_ = os.getcwd()
     ax = None
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax=ax,g_size=10)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
 
@@ -2631,7 +2631,7 @@ if dynamic_intruder_random_arena:
     agents = []
     plt.ion()
     data = []
-    for num_robots in range(2,70,5):
+    for num_robots in ([2] + [i for i in range(6,302,5)]):
         print(num_robots)
         avg_time = []
         data_run = []
@@ -2673,9 +2673,9 @@ if dynamic_intruder_random_arena:
                 
                 if all_reached:
                     next_locs = np.random.choice(list(grid_graph),num_robots,replace=False)
-                    current_dest = [robots[i].next_loc for i in range(len(robots))]
-                    while len(np.intersect1d(next_locs,current_dest))!=0:
-                        next_locs = np.random.choice(list(grid_graph),num_robots,replace=False)
+                    # current_dest = [robots[i].next_loc for i in range(len(robots))]
+                    # while len(np.intersect1d(next_locs,current_dest))!=0:
+                    #     next_locs = np.random.choice(list(grid_graph),num_robots,replace=False)
 
                     bipartite = {}
                     grids = cp.copy(grid_graph)
@@ -2684,7 +2684,12 @@ if dynamic_intruder_random_arena:
                             for g in grids:
                                 grids[g].robo_path_pre = None
 
-                            path,weight = Astar(cp.copy(grids),r.present_loc,d)
+                            # path,weight = Astar(cp.copy(grids),r.present_loc,d)
+                            if r.present_loc != d:
+                                path,weight = Astar(grid_graph,r.present_loc,d)#,fig,ax)
+                            else:
+                                path = [d]
+                                weight = 0
                             bipartite[str(r.id)+d] = Edge(l=r,r=d,weight=weight)
 
                     robots = matching(bipartite,robots,next_locs,grid_graph)
@@ -2696,7 +2701,11 @@ if dynamic_intruder_random_arena:
                     for i in range(num_robots):
                         for g in grid_graph:
                             grid_graph[g].robo_path_pre = None
-                        path,_ = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
+                        # path,_ = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
+                        if robots[i].present_loc!=robots[i].next_loc:
+                            path,_ = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
+                        else:
+                            path = [robots[i].next_loc]
 
                         robots[i].path_history = robots[i].path_history + robots[i].path_ahead
                         robots[i].path_ahead = path
