@@ -34,7 +34,8 @@ colors =['blue','orange','pink','green']
 bench = [16,43,60] # 81, 216,301
 sfc = [1,136,221]
 gsfc = [1,136,221]
-datas = [bench,sfc,gsfc]
+random = [16,43,60]
+datas = [bench,sfc,gsfc,random]
 ticks = []
 for k in range(3):
     counter = 0
