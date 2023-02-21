@@ -5,7 +5,13 @@ import numpy as np
 import copy as cp
 import pickle as pkl
 import os
-np.random.seed(748657)
+# np.random.seed(748657)#5spikes
+# np.random.seed(786)#5spikes
+# np.random.seed(1)#2spikes
+# sed = 19778167 # 5 spike 19778167: 38lg
+sed = 27819661 # 7 spike 27819661 38lg
+np.random.seed(sed)
+
 
 # Random simple rectilinear polygon generator
 
@@ -1672,7 +1678,9 @@ if static_intruder_random_arena:
     # ax.axis('off')
     # ax.get_xaxis().set_visible(False)
     # ax.get_yaxis().set_visible(False)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),g_size=10)#,ax)
+    itera = np.random.randint(50)
+    print('itera :',itera)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10)#,ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
 
@@ -1690,14 +1698,15 @@ if static_intruder_random_arena:
         ax = None
         grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
-
+    plt.ioff()
+    plt.show()
     time = []
     agents = []
     # plt.ion()
     grid_mesh = None
     once = 0
     data = []
-    for num_robots in range(1,302,5):
+    for num_robots in range(1,153,3):
         avg_time = []
         data_run = []
         print(num_robots)
@@ -1737,11 +1746,15 @@ if static_intruder_random_arena:
                 for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
                     if robots[i].present_loc == robots[i].path_ahead[-1]:
                         robots[i].next_loc = robots[i].loc(grid_graph)
-                        while robots[i].next_loc == robots[i].present_loc:
-                            robots[i].next_loc = robots[i].loc(grid_graph)
+                        # while robots[i].next_loc == robots[i].present_loc:
+                        #     robots[i].next_loc = robots[i].loc(grid_graph)
                         for g in grid_graph:
                             grid_graph[g].robo_path_pre = None
-                        path = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
+                            
+                        if robots[i].present_loc!=robots[i].next_loc:
+                            path = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
+                        else:
+                            path = [robots[i].next_loc]
 
                         robots[i].path_history = robots[i].path_history + robots[i].path_ahead
                         robots[i].path_ahead = path
@@ -1786,7 +1799,9 @@ if dynamic_intruder_random_arena:
     path_ = os.getcwd()
     # fig,ax = plt.subplots()
     # ax.set_aspect('equal')
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),g_size=10)#,ax)
+    itera = np.random.randint(50)
+    print('itera :',itera)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10)#,ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
 
@@ -1804,12 +1819,13 @@ if dynamic_intruder_random_arena:
         ax = None
         grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
-
+    plt.ioff()
+    plt.show()
     time = []
     agents = []
     plt.ion()
     data = []
-    for num_robots in range(1,302,5):
+    for num_robots in range(1,153,3):
         avg_time = []
         data_run = []
         print(num_robots)
@@ -1837,11 +1853,15 @@ if dynamic_intruder_random_arena:
                 for i in range(num_robots): #   Traverse each robot to new location from its past location and check presence of Intruder along the path
                     if robots[i].present_loc == robots[i].path_ahead[-1]:
                         robots[i].next_loc = robots[i].loc(grid_graph)
-                        while robots[i].next_loc == robots[i].present_loc:
-                            robots[i].next_loc = robots[i].loc(grid_graph)
+                        # while robots[i].next_loc == robots[i].present_loc:
+                        #     robots[i].next_loc = robots[i].loc(grid_graph)
                         for g in grid_graph:
                             grid_graph[g].robo_path_pre = None
-                        path = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
+                        
+                        if robots[i].present_loc!=robots[i].next_loc:
+                            path = Astar(grid_graph,robots[i].present_loc,robots[i].next_loc)#,fig,ax)
+                        else:
+                            path = [robots[i].next_loc]
 
                         robots[i].path_history = robots[i].path_history + robots[i].path_ahead
                         robots[i].path_ahead = path

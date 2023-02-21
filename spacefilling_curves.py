@@ -5,7 +5,15 @@ import matplotlib.pyplot as plt
 import copy as cp
 import pickle as pkl
 import os
-np.random.seed(748657)
+# np.random.seed(748657)#5spikes
+# np.random.seed(786)#5spikes
+# np.random.seed(1)#2spikes
+
+# sed = 25839018 # 5spikes
+# sed = 31014533 # 6spikes
+# sed = 19778167 # 5 spike 19778167: 38lg
+sed = 27819661 # 7 spike 27819661 38lg
+np.random.seed(sed)
 
 # Random simple rectilinear polygon generator
 class Node:
@@ -1324,37 +1332,37 @@ def intruder_(grids,ax):
         ax.add_artist(intruder.body)
     return intruder
 
-# Multi searcher
-def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
-    robots = [] #   Spawn Robots
+# # Multi searcher
+# def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
+#     robots = [] #   Spawn Robots
 
-    for g in grids:
-        if grids[g].passage:
-            robots.append(Robot(len(robots)+1,'g'))
-            robots[len(robots)-1].present_loc = g
-            # grids[robots[len(robots)-1].present_loc].robot_home = True
-            if ax != None:
-                robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='slateblue',s=3,alpha=0.4)
-                ax.add_artist(robots[len(robots)-1].body)
-            # plt.show()
+#     for g in grids:
+#         if grids[g].passage:
+#             robots.append(Robot(len(robots)+1,'g'))
+#             robots[len(robots)-1].present_loc = g
+#             # grids[robots[len(robots)-1].present_loc].robot_home = True
+#             if ax != None:
+#                 robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='slateblue',s=3,alpha=0.4)
+#                 ax.add_artist(robots[len(robots)-1].body)
+#             # plt.show()
 
-    num_robots -= len(robots)
-    for r in range(len(num_grids_per_rectangle)):
-        start = int(np.sum(num_grids_per_rectangle[:r]))
-        num_to_be_added = max(np.round(num_robots*num_grids_per_rectangle[r]/len(grids)),1)
-        end = start + num_to_be_added
-        counter = 0
-        for i in range(int(start),int(end)):
-            robots.append(Robot(len(robots)+1,'s'))
-            loc = int(counter*num_grids_per_rectangle[r]/(end-start))
-            robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
+#     num_robots -= len(robots)
+#     for r in range(len(num_grids_per_rectangle)):
+#         start = int(np.sum(num_grids_per_rectangle[:r]))
+#         num_to_be_added = max(np.round(num_robots*num_grids_per_rectangle[r]/len(grids)),1)
+#         end = start + num_to_be_added
+#         counter = 0
+#         for i in range(int(start),int(end)):
+#             robots.append(Robot(len(robots)+1,'s'))
+#             loc = int(counter*num_grids_per_rectangle[r]/(end-start))
+#             robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
 
-            grids[robots[len(robots)-1].present_loc].robot_home = True
-            if ax != None:
-                robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=2)
-                ax.add_artist(robots[len(robots)-1].body)
-            counter += 1
-    return robots
+#             grids[robots[len(robots)-1].present_loc].robot_home = True
+#             if ax != None:
+#                 robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=2)
+#                 ax.add_artist(robots[len(robots)-1].body)
+#             counter += 1
+#     return robots
 
 # # Single searcher 
 # def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
@@ -1376,25 +1384,25 @@ def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_heigh
 #     return robots
 
 # k searcher 
-# def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
-#     robots = [] #   Spawn Robots
+def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
+    robots = [] #   Spawn Robots
 
-#     for r in range(len(num_grids_per_rectangle)):
-#         start = int(np.sum(num_grids_per_rectangle[:r]))
-#         num_to_be_added = max(np.round(num_robots*num_grids_per_rectangle[r]/len(grids)),1)
-#         end = start + num_to_be_added
-#         counter = 0
-#         for i in range(int(start),int(end)):
-#             robots.append(Robot(len(robots)+1,'s'))
-#             loc = int(counter*num_grids_per_rectangle[r]/(end-start))
-#             robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
+    for r in range(len(num_grids_per_rectangle)):
+        start = int(np.sum(num_grids_per_rectangle[:r]))
+        num_to_be_added = max(np.round(num_robots*num_grids_per_rectangle[r]/len(grids)),1)
+        end = start + num_to_be_added
+        counter = 0
+        for i in range(int(start),int(end)):
+            robots.append(Robot(len(robots)+1,'s'))
+            loc = int(counter*num_grids_per_rectangle[r]/(end-start))
+            robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
 
-#             grids[robots[len(robots)-1].present_loc].robot_home = True
-#             if ax is not None:
-#                 robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=2)
-#                 ax.add_artist(robots[len(robots)-1].body)
-#             counter += 1
-#     return robots
+            grids[robots[len(robots)-1].present_loc].robot_home = True
+            if ax is not None:
+                robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=2)
+                ax.add_artist(robots[len(robots)-1].body)
+            counter += 1
+    return robots
 
 
 
@@ -1644,17 +1652,19 @@ if dynamic_intruder:
     fileObject.close()
 
 # Multi searcher 
-static_intruder = 0
+static_intruder = 1
 if static_intruder:
     path = os.getcwd()
     performance = []
-    # fig,ax = plt.subplots()
-    # plt.box(False)
-    # ax.set_aspect('equal')
-    # ax.axis('off')
-    # ax.get_xaxis().set_visible(False)
-    # ax.get_yaxis().set_visible(False)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),g_size=10)#,ax)
+    fig,ax = plt.subplots()
+    plt.box(False)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    itera = np.random.randint(50)
+    print('itera :',itera)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10)#,ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
 
@@ -1676,7 +1686,7 @@ if static_intruder:
         k_max += len(centroids)
         area_reactangles.append(len(centroids))
         HSC = HSC + [np.array(hsc)]
-
+    plt.ioff()
     plt.show()
     # plt.pause(1)
     data = []
@@ -1685,7 +1695,9 @@ if static_intruder:
     for g in grid_graph:
         if grid_graph[g].passage:
             min_robo_req += 1
-    for k in range(min_robo_req+len(area_reactangles),k_max):
+    
+    k_min = len(area_reactangles)# + min_robo_req
+    for k in range(k_min,k_max+1):
         print(k)
         
         
@@ -1748,11 +1760,11 @@ if static_intruder:
         #     rb.body.set_visible(False)
         #     if rb.plott != None:
         #         rb.plott[0].set_visible(False)
-    fileObject = open(path+'/results/MRGIS_s_sfc', 'wb')
+    fileObject = open(path+'/results/MRIS_s_sfc', 'wb')
     pkl.dump(data,fileObject)
     fileObject.close()
 
-dynamic_intruder = 1
+dynamic_intruder = 0
 if dynamic_intruder:
     path = os.getcwd()
     def get_neighbour(cel,s):
@@ -1772,7 +1784,9 @@ if dynamic_intruder:
     # ax.axis('off')
     # ax.get_xaxis().set_visible(False)
     # ax.get_yaxis().set_visible(False)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),g_size=10)#,ax)
+    itera = np.random.randint(50)
+    print('itera :',itera)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10)#,ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
 
@@ -1794,7 +1808,7 @@ if dynamic_intruder:
         k_max += len(centroids)
         area_reactangles.append(len(centroids))
         HSC = HSC + [np.array(hsc)]
-
+    plt.ioff()
     plt.show()
     # plt.pause(1)
     data = []
@@ -1802,7 +1816,8 @@ if dynamic_intruder:
     for g in grid_graph:
         if grid_graph[g].passage:
             min_robo_req += 1
-    for k in range(min_robo_req+len(area_reactangles),k_max):
+    k_min = len(area_reactangles)# + min_robo_req
+    for k in range(k_min,k_max+1):
         print(k)
 
         searchers_time_num = {}#    key = searcher number
@@ -1882,7 +1897,7 @@ if dynamic_intruder:
         #     rb.body.set_visible(False)
         #     if rb.plott != None:
         #         rb.plott[0].set_visible(False)
-    fileObject = open(path+'/results/MRGIS_d_sfc', 'wb')
+    fileObject = open(path+'/results/MRIS_d_sfc', 'wb')
     pkl.dump(data,fileObject)
     fileObject.close()
 
@@ -2069,3 +2084,42 @@ if multi_searcher_plot_results:
     plt.legend(prop=leg_font)
     plt.savefig(path+'/results/MRIS_sfc.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
     plt.show()
+
+test = 0
+if test:
+    path = os.path.realpath(os.path.dirname(__file__)) 
+    performance = []
+    fig,ax = plt.subplots()
+    plt.box(False)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    itera = np.random.randint(50)
+    print('itera :',itera)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10)#,ax)
+    print(len(grids))
+    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=ax)
+
+    rectangles = []
+    for r in rectangles_nodes:
+        rectangles.append(r.get_corners())
+
+    # plt.pause(1)
+    k_max = 0
+    grid_graph = {}
+    HSC = []
+    grid_height = 5
+    grid_width = 5
+    area_reactangles = []
+    for r in range(len(rectangles)):
+        ax = None
+        grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
+
+        k_max += len(centroids)
+        area_reactangles.append(len(centroids))
+        HSC = HSC + [np.array(hsc)]
+    plt.ioff()
+    fig.savefig(path+'/results/7spike.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
+    plt.show()
+    
