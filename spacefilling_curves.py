@@ -11,8 +11,8 @@ import os
 
 # sed = 25839018 # 5spikes
 # sed = 31014533 # 6spikes
-# sed = 19778167 # 5 spike 19778167: 38lg
-sed = 27819661 # 7 spike 27819661 38lg
+sed = 19778167 # 5 spike 19778167: 38lg
+# sed = 27819661 # 7 spike 27819661 38lg
 np.random.seed(sed)
 
 # Random simple rectilinear polygon generator
@@ -1652,7 +1652,7 @@ if dynamic_intruder:
     fileObject.close()
 
 # Multi searcher 
-static_intruder = 1
+static_intruder = 0
 if static_intruder:
     path = os.getcwd()
     performance = []
@@ -2113,13 +2113,19 @@ if test:
     grid_width = 5
     area_reactangles = []
     for r in range(len(rectangles)):
-        ax = None
+        # ax = None
         grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
         k_max += len(centroids)
         area_reactangles.append(len(centroids))
         HSC = HSC + [np.array(hsc)]
+    
+    for i in grid_graph:
+        x = grid_graph[i].get_x()
+        y = grid_graph[i].get_y()
+        ax.plot(x,y,color='orange')
+    ax.plot(boundary[:,0],boundary[:,1],color = 'indigo')
     plt.ioff()
-    fig.savefig(path+'/results/7spike.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
+    fig.savefig(path+'/results/5s_grided.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
     plt.show()
     

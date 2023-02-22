@@ -9,7 +9,9 @@ sed = np.random.randint(1,46512468)
 print('seed: ',sed)
 # sed = 25839018 # 5spikes
 # sed = 31014533 # 6spikes
-np.random.seed(27819661)
+# sed = 19778167 # 5 spike 19778167: 38lg
+sed = 27819661 # 7 spike 27819661 38lg
+np.random.seed(sed)
 
 # Random simple rectilinear polygon generator
 
@@ -2077,7 +2079,15 @@ if test:
     for r in range(len(rectangles)):
         # ax = None
         grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
-    plt.ioff()
+    
+    for i in grid_graph:
+        x = grid_graph[i].get_x()
+        y = grid_graph[i].get_y()
+        ax.plot(x,y,color='orange')
+    ax.plot(boundary[:,0],boundary[:,1],color = 'indigo')
     print(len(grid_graph))
+    plt.ioff()
+    fig.savefig(path_+'/results/7s_grided.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
     plt.show()
+
     

@@ -2611,7 +2611,7 @@ if static_intruder_random_arena:
     # pkl.dump(np.array(agents),fileObject)
     fileObject.close()
 
-dynamic_intruder_random_arena = 1
+dynamic_intruder_random_arena = 0
 if dynamic_intruder_random_arena:
     # fig,ax = plt.subplots()
     # ax.set_aspect('equal')
