@@ -30,15 +30,16 @@ for f in files:
     all_data.append(np.array([num_robots,mu_t,std_t]))
 # all_data = np.array(all_data)
 bar,ax = plt.subplots()
-colors =['blue','orange','slateblue','green','brown']
-labels = ['Benchmark','RS','CRS','SFC','SFC-G']
+colors =['blue','orange','slateblue','green','brown','cyan']
+labels = ['Benchmark','RS','CRS-mini','CRS-maxi','SFC','SFC-G']
 itype = [', M-I',', S-I']
 bench = [23,31,37] # 24, 32, 38
 sfc = [14,22,28]
 gsfc = [0,8,14]
 random = [23,31,37]
-crs = [22,30,36]
-datas = [bench,random,crs,sfc,gsfc]
+crs_mini = [22,30,36]
+crs_maxi = [22,30,36]
+datas = [bench,random,crs_mini,crs_maxi,sfc,gsfc]
 ticks = []
 for k in range(1):
     counter = 0

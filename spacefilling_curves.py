@@ -250,8 +250,6 @@ def Inflate_Cut_algorithm(num_vertices,g_size=10,ax=None):
                                 edges[str(len(edges)-1)].l_nei = e
                                 del backup[i]
                                 break
-                
-            
 
                 boundary = edges[start_edge].get_loop(edges)
 
@@ -1332,37 +1330,37 @@ def intruder_(grids,ax):
         ax.add_artist(intruder.body)
     return intruder
 
-# # Multi searcher
-# def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
-#     robots = [] #   Spawn Robots
+# Multi searcher
+def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
+    robots = [] #   Spawn Robots
 
-#     for g in grids:
-#         if grids[g].passage:
-#             robots.append(Robot(len(robots)+1,'g'))
-#             robots[len(robots)-1].present_loc = g
-#             # grids[robots[len(robots)-1].present_loc].robot_home = True
-#             if ax != None:
-#                 robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='slateblue',s=3,alpha=0.4)
-#                 ax.add_artist(robots[len(robots)-1].body)
-#             # plt.show()
+    for g in grids:
+        if grids[g].passage:
+            robots.append(Robot(len(robots)+1,'g'))
+            robots[len(robots)-1].present_loc = g
+            # grids[robots[len(robots)-1].present_loc].robot_home = True
+            if ax != None:
+                robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='slateblue',s=10,alpha=0.4)
+                ax.add_artist(robots[len(robots)-1].body)
+            # plt.show()
 
-#     num_robots -= len(robots)
-#     for r in range(len(num_grids_per_rectangle)):
-#         start = int(np.sum(num_grids_per_rectangle[:r]))
-#         num_to_be_added = max(np.round(num_robots*num_grids_per_rectangle[r]/len(grids)),1)
-#         end = start + num_to_be_added
-#         counter = 0
-#         for i in range(int(start),int(end)):
-#             robots.append(Robot(len(robots)+1,'s'))
-#             loc = int(counter*num_grids_per_rectangle[r]/(end-start))
-#             robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
+    num_robots -= len(robots)
+    for r in range(len(num_grids_per_rectangle)):
+        start = int(np.sum(num_grids_per_rectangle[:r]))
+        num_to_be_added = max(np.round(num_robots*num_grids_per_rectangle[r]/len(grids)),1)
+        end = start + num_to_be_added
+        counter = 0
+        for i in range(int(start),int(end)):
+            robots.append(Robot(len(robots)+1,'s'))
+            loc = int(counter*num_grids_per_rectangle[r]/(end-start))
+            robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
 
-#             grids[robots[len(robots)-1].present_loc].robot_home = True
-#             if ax != None:
-#                 robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=2)
-#                 ax.add_artist(robots[len(robots)-1].body)
-#             counter += 1
-#     return robots
+            grids[robots[len(robots)-1].present_loc].robot_home = True
+            if ax != None:
+                robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=10)
+                ax.add_artist(robots[len(robots)-1].body)
+            counter += 1
+    return robots
 
 # # Single searcher 
 # def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
@@ -1384,272 +1382,26 @@ def intruder_(grids,ax):
 #     return robots
 
 # k searcher 
-def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
-    robots = [] #   Spawn Robots
+# def searchers(num_robots,grids,num_grids_per_rectangle,hsc,grid_width,grid_height,ax):
+#     robots = [] #   Spawn Robots
 
-    for r in range(len(num_grids_per_rectangle)):
-        start = int(np.sum(num_grids_per_rectangle[:r]))
-        num_to_be_added = max(np.round(num_robots*num_grids_per_rectangle[r]/len(grids)),1)
-        end = start + num_to_be_added
-        counter = 0
-        for i in range(int(start),int(end)):
-            robots.append(Robot(len(robots)+1,'s'))
-            loc = int(counter*num_grids_per_rectangle[r]/(end-start))
-            robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
+#     for r in range(len(num_grids_per_rectangle)):
+#         start = int(np.sum(num_grids_per_rectangle[:r]))
+#         num_to_be_added = max(np.round(num_robots*num_grids_per_rectangle[r]/len(grids)),1)
+#         end = start + num_to_be_added
+#         counter = 0
+#         for i in range(int(start),int(end)):
+#             robots.append(Robot(len(robots)+1,'s'))
+#             loc = int(counter*num_grids_per_rectangle[r]/(end-start))
+#             robots[len(robots)-1].present_loc = str([int(hsc[r][0,loc]-grid_width/2),int(hsc[r][1,loc]-grid_height/2)])
 
-            grids[robots[len(robots)-1].present_loc].robot_home = True
-            if ax is not None:
-                robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=2)
-                ax.add_artist(robots[len(robots)-1].body)
-            counter += 1
-    return robots
+#             grids[robots[len(robots)-1].present_loc].robot_home = True
+#             if ax is not None:
+#                 robots[len(robots)-1].body = ax.scatter([grids[robots[len(robots)-1].present_loc].centroid[0]],[grids[robots[len(robots)-1].present_loc].centroid[1]],color='green',s=10)
+#                 ax.add_artist(robots[len(robots)-1].body)
+#             counter += 1
+#     return robots
 
-
-
-# Single searcher   
-static_intruder = 0
-if static_intruder:
-    path_ = os.getcwd()
-    performance = []
-    fig,ax = plt.subplots()
-    plt.box(False)
-    ax.set_aspect('equal')
-    ax.axis('off')
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-    # ax = None
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
-
-    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
-
-    rectangles = []
-    for r in rectangles_nodes:
-        rectangles.append(r.get_corners())
-        # ax.plot(r.get_x(),r.get_y())
-
-    # plt.pause(1)
-    k_max = 0
-    grid_graph = {}
-    HSC = []
-    area_reactangles = []
-    for r in range(len(rectangles)):
-        grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),5,5,ax,grid_graph,grids,r)
-
-        k_max += len(centroids)
-        area_reactangles.append(len(centroids))
-        # ax.plot(hsc[0],hsc[1])
-        HSC = HSC + [np.array(hsc)]
-
-        plt.show()
-
-    for runs in range(100):
-        # print('runs',runs)
-        min_robo_req = 0
-        for g in grid_graph:
-            if grid_graph[g].passage:
-                min_robo_req += 1
-
-        searchers_time_num = {}#    key = searcher number
-
-        k = 1
-
-        for g in grid_graph:
-            if grid_graph[g].robot_home:
-                grid_graph[g].robot_home = False
-        intruder = intruder_(grid_graph,ax)
-        robots = searchers(k,grid_graph,area_reactangles,HSC,5,5,ax)
-        intruder_found_state = False
-        t = 0
-        while not intruder_found_state:
-            for rb in robots:
-                if rb.present_loc == intruder.present_loc:
-                    intruder_found_state = True
-                if rb.type == 's':
-                    rb.past_loc = rb.present_loc
-                    if grid_graph[rb.present_loc].robot_home == True:# or grid_graph[rb.present_loc].path_post == None or grid_graph[rb.present_loc].path_pre == None:
-                        if rb.mode == 'f':
-                            rb.mode = 'b'
-                        elif rb.mode == 'b':
-                            rb.mode = 'f'
-                    elif rb.mode == 'f' and grid_graph[rb.present_loc].path_post == None and grid_graph[rb.present_loc].path_connector == None:
-                        rb.mode = 'b'
-                    elif rb.mode == 'b' and grid_graph[rb.present_loc].path_pre == None and grid_graph[rb.present_loc].path_connector == None:
-                        rb.mode = 'f'
-                    if rb.mode == 'f':
-                        if grid_graph[rb.present_loc].path_post != None:
-                            rb.present_loc = grid_graph[rb.present_loc].path_post
-                        elif grid_graph[rb.present_loc].path_connector != None:
-                            rb.present_loc = grid_graph[rb.present_loc].path_connector
-                    else:
-                        if grid_graph[rb.present_loc].path_pre!= None:
-                            rb.present_loc = grid_graph[rb.present_loc].path_pre
-                        elif grid_graph[rb.present_loc].path_connector != None:
-                            rb.present_loc = grid_graph[rb.present_loc].path_connector
-                    rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
-                    if len(rb.trajectory)<5:
-                        rb.trajectory.append([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-                        if len(rb.trajectory)==4:
-                            rb.plott = ax.plot(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
-
-                    else:
-                        rb.update_trajectory([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-                        rb.plott[0].set_data(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1])
-            ax.set_xlim(40,190)
-            ax.set_ylim(40,190)
-            plt.show()
-            plt.pause(0.000001)
-            # if runs==1 and t==20:
-            #     path = os.getcwd()
-            #     plt.savefig(path+'/results/kRIS_s_sfc_guarded.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
-
-            t += 1
-            if intruder_found_state:
-                intruder.body.set_visible(False)
-                for rb in robots:
-                    rb.body.set_visible(False)
-                    if rb.plott != None:
-                        rb.plott[0].set_visible(False)
-                searchers_time_num[len(robots)] = t - 1
-                break
-        performance.append([grid_graph,searchers_time_num])
-        for rb in robots:
-            rb.body.set_visible(False)
-            if rb.plott != None:
-                rb.plott[0].set_visible(False)
-    # fileObject = open(path_+'/results/kRIS_s_sfc_guarded', 'wb')
-    # pkl.dump(performance,fileObject)
-    # fileObject.close()
-
-dynamic_intruder = 0
-if dynamic_intruder:
-    path_=os.getcwd()
-    def get_neighbour(cel,s):
-        if s == 'r':
-            return cel.r_nei
-        elif s == 'l':
-            return cel.l_nei
-        elif s == 't':
-            return cel.t_nei
-        elif s == 'b':
-            return cel.b_nei
-    sides = ['l','r','t','b']
-    performance = []
-    fig,ax = plt.subplots()
-    plt.box(False)
-    ax.set_aspect('equal')
-    ax.axis('off')
-    ax.get_xaxis().set_visible(False)
-    ax.get_yaxis().set_visible(False)
-    # ax = None
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(np.random.randint(30),ax)
-
-    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
-
-    rectangles = []
-    for r in rectangles_nodes:
-        rectangles.append(r.get_corners())
-
-    plt.pause(1)
-    k_max = 0
-    grid_graph = {}
-    HSC = []
-    area_reactangles = []
-    for r in range(len(rectangles)):
-        grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),5,5,ax,grid_graph,grids,r)
-
-        k_max += len(centroids)
-        area_reactangles.append(len(centroids))
-        HSC = HSC + [np.array(hsc)]
-
-    plt.show()
-    plt.pause(1)
-    for runs in range(100):
-        
-        min_robo_req = 0
-        for g in grid_graph:
-            if grid_graph[g].passage:
-                min_robo_req += 1
-
-        searchers_time_num = {}#    key = searcher number
-        k=1
-        for g in grid_graph:
-            if grid_graph[g].robot_home:
-                grid_graph[g].robot_home = False
-        intruder = intruder_(grid_graph,ax)
-        robots = searchers(k,grid_graph,area_reactangles,HSC,5,5,ax)
-        intruder_found_state = False
-        t = 0
-        while not intruder_found_state:
-            intruder_next = np.random.choice(sides)
-            intruder.past_loc = intruder.present_loc
-            intruder.present_loc = get_neighbour(grid_graph[intruder.present_loc],intruder_next)
-            if intruder.present_loc == None:
-                intruder.present_loc = intruder.past_loc 
-            intruder.body.set_offsets([[grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]]])
-            if len(intruder.trajectory)<10:
-                intruder.trajectory.append([grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]])
-                if len(intruder.trajectory)==9:
-                    intruder.plott = ax.plot(np.array(intruder.trajectory)[:,0],np.array(intruder.trajectory)[:,1],color='red',linewidth=3,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
-            else:
-                intruder.update_trajectory([grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]])
-                intruder.plott[0].set_data(np.array(intruder.trajectory)[:,0],np.array(intruder.trajectory)[:,1])
-            for rb in robots:
-                if rb.present_loc == intruder.present_loc:
-                    intruder_found_state = True
-                if rb.type == 's':
-                    rb.past_loc = rb.present_loc
-                    if grid_graph[rb.present_loc].robot_home == True:# or grid_graph[rb.present_loc].path_post == None or grid_graph[rb.present_loc].path_pre == None:
-                        if rb.mode == 'f':
-                            rb.mode = 'b'
-                        elif rb.mode == 'b':
-                            rb.mode = 'f'
-                    elif rb.mode == 'f' and grid_graph[rb.present_loc].path_post == None:
-                        rb.mode = 'b'
-                    elif rb.mode == 'b' and grid_graph[rb.present_loc].path_pre == None:
-                        rb.mode = 'f'
-                    if rb.mode == 'f':
-                        if grid_graph[rb.present_loc].path_post != None:
-                            rb.present_loc = grid_graph[rb.present_loc].path_post
-                    else:
-                        if grid_graph[rb.present_loc].path_pre!= None:
-                            rb.present_loc = grid_graph[rb.present_loc].path_pre
-                    rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
-                    if len(rb.trajectory)<5:
-                        rb.trajectory.append([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-                        if len(rb.trajectory)==4:    
-                            rb.plott = ax.plot(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
-
-                    else:
-                        rb.update_trajectory([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-                        rb.plott[0].set_data(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1])
-            ax.set_xlim(40,190)
-            ax.set_ylim(40,190)
-            plt.show()
-            plt.pause(0.000001)
-            if t==20:
-                path = os.getcwd()
-                plt.savefig(path+'/results/kRIS_d_sfc_guarded.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
-
-            t += 1
-            if intruder_found_state:
-                intruder.body.set_visible(False)
-                for rb in robots:
-                    rb.body.set_visible(False)
-                    if rb.plott != None:
-                        rb.plott[0].set_visible(False)
-                searchers_time_num[len(robots)] = t - 1
-                break
-        performance.append([grid_graph,searchers_time_num])
-        intruder.body.set_visible(False)
-        if intruder.plott != None:
-            intruder.plott[0].set_visible(False)
-        for rb in robots:
-            rb.body.set_visible(False)
-            if rb.plott != None:
-                rb.plott[0].set_visible(False)
-    fileObject = open(path_+'/results/kRIS_d_sfc_guarded', 'wb')
-    pkl.dump(performance,fileObject)
-    fileObject.close()
 
 # Multi searcher 
 static_intruder = 0
@@ -1664,7 +1416,7 @@ if static_intruder:
     ax.get_yaxis().set_visible(False)
     itera = np.random.randint(50)
     print('itera :',itera)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10)#,ax)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10,ax=ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
 
@@ -1680,14 +1432,14 @@ if static_intruder:
     grid_width = 5
     area_reactangles = []
     for r in range(len(rectangles)):
-        ax = None
+        # ax = None
         grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
         k_max += len(centroids)
         area_reactangles.append(len(centroids))
         HSC = HSC + [np.array(hsc)]
-    plt.ioff()
-    plt.show()
+    # plt.ioff()
+    # plt.show()
     # plt.pause(1)
     data = []
     
@@ -1733,38 +1485,38 @@ if static_intruder:
                         else:
                             if grid_graph[rb.present_loc].path_pre!= None:
                                 rb.present_loc = grid_graph[rb.present_loc].path_pre
-                #         rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
-                #         if len(rb.trajectory)<5:
-                #             rb.trajectory.append([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-                #             if len(rb.trajectory)==4:
-                #                 rb.plott = ax.plot(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
-                #         else:
-                #             rb.update_trajectory([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-                #             rb.plott[0].set_data(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1])
-                # ax.set_xlim(40,190)
-                # ax.set_ylim(40,190)
-                # plt.show()
-                # plt.pause(0.000001)
+                        rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
+                        if len(rb.trajectory)<5:
+                            rb.trajectory.append([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
+                            if len(rb.trajectory)==4:
+                                rb.plott = ax.plot(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
+                        else:
+                            rb.update_trajectory([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
+                            rb.plott[0].set_data(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1])
+                ax.set_xlim(40)
+                ax.set_ylim(40)
+                plt.show()
+                plt.pause(0.000001)
                 t += 1
                 if intruder_found_state:
-                    # intruder.body.set_visible(False)
-                    # for rb in robots:
-                    #     rb.body.set_visible(False)
-                    #     if rb.plott != None:
-                    #         rb.plott[0].set_visible(False)
+                    intruder.body.set_visible(False)
+                    for rb in robots:
+                        rb.body.set_visible(False)
+                        if rb.plott != None:
+                            rb.plott[0].set_visible(False)
                     searchers_time_num[len(robots)] = t - 1
                     break
-            data_run.append([k,t])
-        data.append(data_run)
-        # for rb in robots:
-        #     rb.body.set_visible(False)
-        #     if rb.plott != None:
-        #         rb.plott[0].set_visible(False)
-    fileObject = open(path+'/results/MRIS_s_sfc', 'wb')
-    pkl.dump(data,fileObject)
-    fileObject.close()
+        #     data_run.append([k,t])
+        # data.append(data_run)
+        for rb in robots:
+            rb.body.set_visible(False)
+            if rb.plott != None:
+                rb.plott[0].set_visible(False)
+    # fileObject = open(path+'/results/MRIS_s_sfc', 'wb')
+    # pkl.dump(data,fileObject)
+    # fileObject.close()
 
-dynamic_intruder = 0
+dynamic_intruder = 1
 if dynamic_intruder:
     path = os.getcwd()
     def get_neighbour(cel,s):
@@ -1778,15 +1530,15 @@ if dynamic_intruder:
             return cel.b_nei
     sides = ['l','r','t','b']
     performance = []
-    # fig,ax = plt.subplots()
-    # plt.box(False)
-    # ax.set_aspect('equal')
-    # ax.axis('off')
-    # ax.get_xaxis().set_visible(False)
-    # ax.get_yaxis().set_visible(False)
+    fig,ax = plt.subplots()
+    plt.box(False)
+    ax.set_aspect('equal')
+    ax.axis('off')
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
     itera = np.random.randint(50)
     print('itera :',itera)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10)#,ax)
+    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10,ax=ax)
 
     rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax=None)
 
@@ -1802,14 +1554,14 @@ if dynamic_intruder:
     grid_width = 5
     area_reactangles = []
     for r in range(len(rectangles)):
-        ax = None
+        # ax = None
         grid_graph,centroids, hsc = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
 
         k_max += len(centroids)
         area_reactangles.append(len(centroids))
         HSC = HSC + [np.array(hsc)]
-    plt.ioff()
-    plt.show()
+    # plt.ioff()
+    # plt.show()
     # plt.pause(1)
     data = []
     min_robo_req = 0
@@ -1836,14 +1588,14 @@ if dynamic_intruder:
                 intruder.present_loc = get_neighbour(grid_graph[intruder.present_loc],intruder_next)
                 if intruder.present_loc == None:
                     intruder.present_loc = intruder.past_loc 
-                # intruder.body.set_offsets([[grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]]])
-                # if len(intruder.trajectory)<10:
-                #     intruder.trajectory.append([grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]])
-                #     if len(intruder.trajectory)==9:
-                #         intruder.plott = ax.plot(np.array(intruder.trajectory)[:,0],np.array(intruder.trajectory)[:,1],color='red',linewidth=3,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
-                # else:
-                #     intruder.update_trajectory([grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]])
-                #     intruder.plott[0].set_data(np.array(intruder.trajectory)[:,0],np.array(intruder.trajectory)[:,1])
+                intruder.body.set_offsets([[grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]]])
+                if len(intruder.trajectory)<10:
+                    intruder.trajectory.append([grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]])
+                    if len(intruder.trajectory)==9:
+                        intruder.plott = ax.plot(np.array(intruder.trajectory)[:,0],np.array(intruder.trajectory)[:,1],color='red',linewidth=3,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
+                else:
+                    intruder.update_trajectory([grid_graph[intruder.present_loc].centroid[0],grid_graph[intruder.present_loc].centroid[1]])
+                    intruder.plott[0].set_data(np.array(intruder.trajectory)[:,0],np.array(intruder.trajectory)[:,1])
 
                 for rb in robots:
                     if rb.present_loc == intruder.present_loc:
@@ -1865,225 +1617,43 @@ if dynamic_intruder:
                         else:
                             if grid_graph[rb.present_loc].path_pre!= None:
                                 rb.present_loc = grid_graph[rb.present_loc].path_pre
-                #         rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
-                #         if len(rb.trajectory)<5:
-                #             rb.trajectory.append([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-                #             if len(rb.trajectory)==4:    
-                #                 rb.plott = ax.plot(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
+                        rb.body.set_offsets([[grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]]])
+                        if len(rb.trajectory)<5:
+                            rb.trajectory.append([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
+                            if len(rb.trajectory)==4:    
+                                rb.plott = ax.plot(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1],color='green',linewidth=2,alpha = 0.3)#,marker='o',markersize=0.1*len(rb.trajectory))
 
-                #         else:
-                #             rb.update_trajectory([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
-                #             rb.plott[0].set_data(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1])
+                        else:
+                            rb.update_trajectory([grid_graph[rb.present_loc].centroid[0],grid_graph[rb.present_loc].centroid[1]])
+                            rb.plott[0].set_data(np.array(rb.trajectory)[:,0],np.array(rb.trajectory)[:,1])
                         
-                # ax.set_xlim(40,190)
-                # ax.set_ylim(40,190)
-                # plt.show()
-                # plt.pause(0.000001)
+                ax.set_xlim(40)
+                ax.set_ylim(40)
+                plt.show()
+                plt.pause(0.000001)
                 t += 1
                 if intruder_found_state:
-                    # intruder.body.set_visible(False)
-                    # for rb in robots:
-                    #     rb.body.set_visible(False)
-                    #     if rb.plott != None:
-                    #         rb.plott[0].set_visible(False)
+                    intruder.body.set_visible(False)
+                    if intruder.plott != None:
+                        intruder.plott[0].set_visible(False)
+                    for rb in robots:
+                        rb.body.set_visible(False)
+                        if rb.plott != None:
+                            rb.plott[0].set_visible(False)
                     searchers_time_num[len(robots)] = t - 1
                     break
-            data_run.append([k,t])
-        data.append(data_run)
-        # intruder.body.set_visible(False)
-        # if intruder.plott != None:
-        #     intruder.plott[0].set_visible(False)
-        # for rb in robots:
-        #     rb.body.set_visible(False)
-        #     if rb.plott != None:
-        #         rb.plott[0].set_visible(False)
-    fileObject = open(path+'/results/MRIS_d_sfc', 'wb')
-    pkl.dump(data,fileObject)
-    fileObject.close()
-
-
-# Results plotter
-single_searcher_plot_results = 0
-if single_searcher_plot_results:
-    path = os.getcwd()
-    file = open(path+'/results/1RIS_d_sfc','rb')
-    obj = pkl.load(file)
-    
-    time_search_number = []
-    for runs in obj:
-        time_search_number.append(runs[1])
-    
-    search_number = []
-    search_time = []
-    for i in time_search_number:
-        for index,number in enumerate(i):
-            search_number.append(number)
-            search_time.append(i[number])
-    unique_search_num = np.unique(search_number)
-    avg_search_time = []
-    for n in unique_search_num:
-        avg_t = 0
-        counter = 0
-        for t in range(len(search_time)):
-            if search_number[t] == n:
-                avg_t += search_time[t]
-                counter += 1
-        avg_search_time.append(avg_t/counter)
-    plt.ioff()
-    fig,ax = plt.subplots()
-    
-    ax.scatter(range(100),search_time,linewidth=4,label='Data')
-    ax.plot(range(100),[avg_search_time[0] for i in range(100)],linewidth=4,label='Mean: '+str(avg_search_time[0]),color='orange')
-    t_font = {'weight': 'bold',
-        'size': 15}
-    ax_font = {'weight': 'bold',
-        'size': 20}
-    leg_font = {'weight': 'bold',
-        'size': 12}
-    plt.title('1RDIS: Space-filling curves',fontdict=t_font)
-    plt.xlabel('Runs',fontdict=ax_font)
-    plt.ylabel('Search Time',fontdict=ax_font)
-    plt.xticks(fontsize=15,fontweight='bold')
-    plt.yticks(fontsize=15,fontweight='bold')
-    plt.ticklabel_format(style='sci',scilimits=(0,3))
-
-    plt.tight_layout()
-    plt.legend(prop=leg_font)
-    plt.savefig(path+'/results/1RIS_d_sfc_plot.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
-    plt.show()
-
-k_searcher_plot_results = 0
-if k_searcher_plot_results:
-    path = os.getcwd()
-    file = open(path+'/results/kRIS_d_sfc_guarded','rb')
-    obj = pkl.load(file)
-    
-    time_search_number = []
-    for runs in obj:
-        time_search_number.append(runs[1])
-    
-    search_number = []
-    search_time = []
-    for i in time_search_number:
-        for index,number in enumerate(i):
-            search_number.append(number)
-            search_time.append(i[number])
-    unique_search_num = np.unique(search_number)
-    avg_search_time = []
-    for n in unique_search_num:
-        avg_t = 0
-        counter = 0
-        for t in range(len(search_time)):
-            if search_number[t] == n:
-                avg_t += search_time[t]
-                counter += 1
-        avg_search_time.append(avg_t/counter)
-    plt.ioff()
-    fig,ax = plt.subplots()
-    
-    ax.scatter(range(100),search_time,linewidth=4,label='Data')
-    ax.plot(range(100),[avg_search_time[0] for i in range(100)],linewidth=4,label='Mean: '+str(avg_search_time[0]),color='orange')
-    # ax.plot([avg_search_time[0] for i in range(10)],range(10),linewidth=4)
-    t_font = {'weight': 'bold',
-        'size': 15}
-    ax_font = {'weight': 'bold',
-        'size': 20}
-    leg_font = {'weight': 'bold',
-        'size': 12}
-    plt.title('k-RDIS: Space-filling curves',fontdict=t_font)
-    plt.xlabel('Runs',fontdict=ax_font)
-    plt.ylabel('Search Time',fontdict=ax_font)
-    plt.xticks(fontsize=15,fontweight='bold')
-    plt.yticks(fontsize=15,fontweight='bold')
-    plt.ticklabel_format(style='sci',scilimits=(0,3))
-    ax.text(40,100,'Search Number: '+str(np.sum(search_number)/len(search_number)),fontdict=t_font)
-    # ax.set_aspect('equal')
-    plt.tight_layout()
-    plt.legend(prop=leg_font)
-    # plt.ylim(0,60)
-    plt.savefig(path+'/results/kRIS_d_sfc_guarded_plot.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
-    plt.show()
-
-multi_searcher_plot_results = 0
-if multi_searcher_plot_results:
-    path = os.getcwd()
-    file = open(path+'/results/multi_robot_with_guards_s_intruder_sfc','rb')
-    obj = pkl.load(file)
-    
-    time_search_number = []
-    for runs in obj:
-        time_search_number.append(runs[1])
-    
-    search_number = []
-    search_time = []
-    for i in time_search_number:
-        for index,number in enumerate(i):
-            search_number.append(number)
-            search_time.append(i[number])
-    unique_search_num = np.unique(search_number)
-    avg_search_time = []
-    for n in unique_search_num:
-        avg_t = 0
-        counter = 0
-        for t in range(len(search_time)):
-            if search_number[t] == n:
-                avg_t += search_time[t]
-                counter += 1
-        avg_search_time.append(avg_t/counter)
-    # plt.ioff()
-    fig,ax = plt.subplots()
-    t_font = {'weight': 'bold',
-        'size': 15}
-    ax_font = {'weight': 'bold',
-        'size': 20}
-    leg_font = {'weight': 'bold',
-        'size': 12}
-    ax.plot(avg_search_time,unique_search_num,linewidth=4,label='Static Intruder')
-    plt.xticks(fontsize=15,fontweight='bold')
-    plt.yticks(fontsize=15,fontweight='bold')
-    plt.title('MRIS using Space-filling curves',fontdict=t_font)
-    plt.xlabel('Average search time',fontdict=ax_font)
-    plt.ylabel('Search Number',fontdict=ax_font)
-    plt.tight_layout()
-    # plt.savefig(path+'/results/MRIS_sfc_static.png')
-    # plt.show()
-
-    path = os.getcwd()
-    file = open(path+'/results/multi_robot_with_guards_d_intruder_sfc','rb')
-    obj = pkl.load(file)
-    
-    time_search_number = []
-    for runs in obj:
-        time_search_number.append(runs[1])
-    
-    search_number = []
-    search_time = []
-    for i in time_search_number:
-        for index,number in enumerate(i):
-            search_number.append(number)
-            search_time.append(i[number])
-    unique_search_num = np.unique(search_number)
-    avg_search_time = []
-    for n in unique_search_num:
-        avg_t = 0
-        counter = 0
-        for t in range(len(search_time)):
-            if search_number[t] == n:
-                avg_t += search_time[t]
-                counter += 1
-        avg_search_time.append(avg_t/counter)
-    plt.ioff()
-    # fig,ax = plt.subplots()
-    ax.plot(avg_search_time,unique_search_num,linewidth=4,label='Dynamic Intruder')
-    plt.xticks(fontsize=15,fontweight='bold')
-    plt.yticks(fontsize=15,fontweight='bold')
-    plt.title('MRIS using Space-filling curves',fontdict=t_font)
-    plt.xlabel('Average search time',fontdict=ax_font)
-    plt.ylabel('Search Number',fontdict=ax_font)
-    plt.tight_layout()
-    plt.legend(prop=leg_font)
-    plt.savefig(path+'/results/MRIS_sfc.pdf',format = "pdf",bbox_inches="tight",pad_inches=0)
-    plt.show()
+        #     data_run.append([k,t])
+        # data.append(data_run)
+        intruder.body.set_visible(False)
+        if intruder.plott != None:
+            intruder.plott[0].set_visible(False)
+        for rb in robots:
+            rb.body.set_visible(False)
+            if rb.plott != None:
+                rb.plott[0].set_visible(False)
+    # fileObject = open(path+'/results/MRIS_d_sfc', 'wb')
+    # pkl.dump(data,fileObject)
+    # fileObject.close()
 
 test = 0
 if test:

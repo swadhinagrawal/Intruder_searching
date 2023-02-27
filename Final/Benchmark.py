@@ -5,20 +5,11 @@ import numpy as np
 import copy as cp
 import pickle as pkl
 import os
-# np.random.seed(748657)#5spikes
-# np.random.seed(786)#5spikes
-# np.random.seed(1)#2spikes
+from shapely.geometry import LineString
+
 # sed = 19778167 # 5 spike 19778167: 38lg
 sed = 27819661 # 7 spike 27819661 38lg
 np.random.seed(sed)
-# #   Authors: Swadhin Agrawal
-
-# import matplotlib.pyplot as plt
-# import numpy as np
-# import copy as cp
-# import pickle as pkl
-# import os
-# np.random.seed(7764)
 
 # Random simple rectilinear polygon generator
 
@@ -963,9 +954,7 @@ def Inflate_Cut_algorithm(num_vertices,g_size=10,ax=None):
         polygon_boundary(P,ax1)
         r -= 1
     boundary,edges,start_edge,end_edge = polygon_boundary(P,ax)
-    return boundary,edges,start_edge,end_edge , P
-
-# Decomposition
+    return boundary,edges,start_edge,end_edge
 
 def get_area_vertices(array):
     array = np.array(array)
@@ -984,242 +973,71 @@ def get_area_vertices(array):
             done = 1
     return array
 
-def get_rectangles(p,vertex_set,ax):
-    grids = cp.copy(p)
-    rectangles = []
-    while len(grids)>0:
-        g = list(grids.items())[0][0]
-        marker = [0,0,0,0]  # l,r,t,b
-        if grids[g].l_nei is not None:
-            marker[0] = 1
-        if grids[g].r_nei is not None:
-            marker[1] = 1
-        if grids[g].t_nei is not None:
-            marker[2] = 1
-        if grids[g].b_nei is not None:
-            marker[3] = 1
-        while grids[g].l_nei != None:
-            if grids[g].l_nei != None:
-                g = grids[g].l_nei
-            else:
-                break
-        while grids[g].b_nei != None:
-            if grids[g].b_nei != None:
-                g = grids[g].b_nei
-            else:
-                break
+# Grid graph construction:
 
-        # x = grids[g].get_x()
-        # y = grids[g].get_y()
-        # ax.plot(x,y,color='red')
-        plt.show()
-        def check_presence_inside(vm,vertex_set,C):
-            a = False
-            for p2 in vertex_set:
-                a = a or (p2[0]<vm[0] and p2[1]<vm[1] and p2[0]>C[0] and p2[1]>C[1])
-            return a
+def is_grid_in_poly(polygon,grid,min_x,min_y,max_x,max_y):
+    c = grid.centroid
+    l = np.array([c[0]-(max_x-min_x),c[1]])
+    r = np.array([c[0]+(max_x-min_x),c[1]])
+    t = np.array([c[0],c[1]+(max_y-min_y)])
+    b = np.array([c[0],c[1]-(max_y-min_y)])
+    cl = LineString([tuple(c),tuple(l)])
+    cr = LineString([tuple(c),tuple(r)])
+    ct = LineString([tuple(c),tuple(t)])
+    cb = LineString([tuple(c),tuple(b)])
+    B_l = []
+    B_r = []
+    B_t = []
+    B_b = []
+    for v in range(-1,len(polygon)-1):
+        e = LineString([polygon[v],polygon[v+1]])
 
-        rec_vertices = [grids[g].bl,grids[g].tl,grids[g].br]
-        min_x = min(np.array(rec_vertices)[:,0])
-        min_y = min(np.array(rec_vertices)[:,1])
-        max_x = max(np.array(rec_vertices)[:,0])
-        max_y = max(np.array(rec_vertices)[:,1])
-        g_h = g
-        g_v = g
-        g_v1 = g_v
-        g_h1 = g_h
-        while grids[g_h].r_nei!= None or grids[g_v].t_nei!= None:
-            changed = 0
-            if np.sum(marker)>0:
-                
-                if grids[g_h].r_nei!= None:
-                    
-                    g_h = grids[g_h].r_nei
-                    
-                    rec_vertices.append(grids[g_h].br)
-                    max_x = max(np.array(rec_vertices)[:,0])
-                    max_y = max(np.array(rec_vertices)[:,1])
-                    if not check_presence_inside(np.array([max_x,max_y]),vertex_set,np.array([min_x,min_y])):
-                        g_h1 = g_h
-                        changed = 1
+        B_l.append(e.intersects(cl))
+        B_r.append(e.intersects(cr))
+        B_t.append(e.intersects(ct))
+        B_b.append(e.intersects(cb))
+    if np.sum(B_l)%2==1 or np.sum(B_r)%2==1 or np.sum(B_t)%2==1 or np.sum(B_b)%2==1:
+        return 1
+    else:
+        return 0
 
-                    # x = grids[g_h].get_x()
-                    # y = grids[g_h].get_y()
-                    # ax.plot(x,y,color='pink')
-                    # plt.show()
-                    
-                if grids[g_v].t_nei!= None:
-                    
-                    g_v = grids[g_v].t_nei
-                    rec_vertices.append(grids[g_v].tl)
-                    max_x = max(np.array(rec_vertices)[:,0])
-                    max_y = max(np.array(rec_vertices)[:,1])
-                    if not check_presence_inside(np.array([max_x,max_y]),vertex_set,np.array([min_x,min_y])):
-                        g_v1 = g_v
-                        changed = 1
-                    # x = grids[g_v].get_x()
-                    # y = grids[g_v].get_y()
-                    # ax.plot(x,y,color='pink')
-                    # plt.show()
-                    
-            else:
-                rec_vertices = grids[g].get_corners()
-                rec_vertices = np.concatenate((rec_vertices,np.array([rec_vertices[0]])),axis=0)
-            if not changed:
-                break
-
-        max_x = grids[g_h1].br[0]
-
-        max_y = grids[g_v1].tl[1]
-
-        rectangles.append(Grid(tl=np.array([min_x,max_y]),bl=np.array([min_x,min_y]),tr=np.array([max_x,max_y]),br=np.array([max_x,min_y])))
-        if ax != None:
-            ax.plot(rectangles[-1].get_x(),rectangles[-1].get_y())
-        delete_these = []
-        delete_border_grids = []
-        for g in grids:
-            x = grids[g].get_x()
-            y = grids[g].get_y()
-            marker = [0,0,0,0]  # l,r,t,b
-            if grids[g].l_nei is not None:
-                marker[0] = 1
-            if grids[g].r_nei is not None:
-                marker[1] = 1
-            if grids[g].t_nei is not None:
-                marker[2] = 1
-            if grids[g].b_nei is not None:
-                marker[3] = 1
-            if min(x) > min(rectangles[-1].get_x()) and max(x) < max(rectangles[-1].get_x()) and min(y) > min(rectangles[-1].get_y()) and max(y) < max(rectangles[-1].get_y()) and np.sum(marker)==4:
-                delete_these.append(g)
-            elif min(x) >= min(rectangles[-1].get_x()) and max(x) <= max(rectangles[-1].get_x()) and min(y) >= min(rectangles[-1].get_y()) and max(y) <= max(rectangles[-1].get_y()):
-                delete_border_grids.append(g)
-                p[g].rectangle_num = len(rectangles)-1
-        
-        for gg in delete_these:
-            if grids[gg].t_nei != None:
-                grids[grids[gg].t_nei].b_nei = None
-            if grids[gg].b_nei != None:
-                grids[grids[gg].b_nei].t_nei = None
-            if grids[gg].r_nei != None:
-                grids[grids[gg].r_nei].l_nei = None
-            if grids[gg].l_nei != None:
-                grids[grids[gg].l_nei].r_nei = None
-        for gg in delete_these:
-            del grids[gg]
-        plt.show()
-        
-        def get_neighbour(cel,s):
-            if s == 'r':
-                return cel.r_nei
-            elif s == 'l':
-                return cel.l_nei
-            elif s == 't':
-                return cel.t_nei
-            elif s == 'b':
-                return cel.b_nei
-        
-        sides = ['l','r','t','b']
-        if ax!=None:
-            ax.clear()
-            ax.plot(vertex_set[:,0],vertex_set[:,1],color='darkblue')
-        for gg in delete_border_grids:
-            for s in sides:
-                nei = get_neighbour(p[gg],s)
-                if nei not in delete_border_grids and nei != None:
-                    if grids[nei].t_nei in delete_border_grids:
-                        p[nei].passage = 1
-                        p[nei].passage_t = 1
-                        if ax!=None:
-                            ax.plot(p[nei].get_x()[2:-1],p[nei].get_y()[2:-1],color='black')
-                    if grids[nei].b_nei in delete_border_grids:
-                        p[nei].passage = 1
-                        p[nei].passage_b = 1
-                        if ax!=None:
-                            ax.plot(p[nei].get_x()[:2],p[nei].get_y()[:2],color='black')
-                    if grids[nei].l_nei in delete_border_grids:
-                        p[nei].passage = 1
-                        p[nei].passage_l = 1
-                        if ax!=None:
-                            ax.plot([p[nei].get_x()[ind] for ind in range(-2,1)],[p[nei].get_y()[ind] for ind in range(-2,1)],color='black')
-                    if grids[nei].r_nei in delete_border_grids:
-                        p[nei].passage = 1
-                        p[nei].passage_r = 1
-                        if ax!=None:
-                            ax.plot(p[nei].get_x()[1:3],p[nei].get_y()[1:3],color='black')
-        
-        for gg in delete_border_grids:
-            if grids[gg].t_nei != None:
-                grids[grids[gg].t_nei].b_nei = None
-            if grids[gg].b_nei != None:
-                grids[grids[gg].b_nei].t_nei = None
-            if grids[gg].r_nei != None:
-                grids[grids[gg].r_nei].l_nei = None
-            if grids[gg].l_nei != None:
-                grids[grids[gg].l_nei].r_nei = None
-                
-        for gg in delete_border_grids:
-            del grids[gg]
-
-        # plt.show()
+def Grid_graph(polygon,grid_size,ax):
+    min_x = min(polygon[:,0])
+    max_x = max(polygon[:,0])
+    min_y = min(polygon[:,1])
+    max_y = max(polygon[:,1])
+    grids = {}
     
-    # for g in p:
-    #     # ax.plot(p[g].get_x(),p[g].get_y(),color='orange')
-    #     if p[g].passage_l:
-    #         ax.plot([p[g].get_x()[ind] for ind in range(-2,1)],[p[g].get_y()[ind] for ind in range(-2,1)],color='white')
-    #     if p[g].passage_r:
-    #         ax.plot(p[g].get_x()[1:3],p[g].get_y()[1:3],color='white')
-    #     if p[g].passage_t:
-    #         ax.plot(p[g].get_x()[2:-1],p[g].get_y()[2:-1],color='white')
-    #     if p[g].passage_b:
-    #         ax.plot(p[g].get_x()[:2],p[g].get_y()[:2],color='white')
-    # plt.show()
-    return rectangles, p
-
-#   Spacefilling curves
-def make_grid(x1,y1,x2,y2,inner_grid_height,inner_grid_width,ax,grid_graph,grids,rec_num):
-    def check_presence_inside(vm,vertex_set,C):
-        a = False
-        for p2 in vertex_set:
-            a = a or (p2[0]<vm[0] and p2[1]<vm[1] and p2[0]>C[0] and p2[1]>C[1])
-        return a
-    centroids = []
-    for i in range(x1,x2,inner_grid_width):
-        for j in range(y1,y2,inner_grid_height):
-            grid_graph.update({str([i,j]):Grid(tl=np.array([i,j+inner_grid_height]),tr=np.array([i+inner_grid_width,j+inner_grid_height]),bl=np.array([i,j]),br=np.array([i+inner_grid_width,j]))})
-            grid_graph[str([i,j])].height = inner_grid_height
-            grid_graph[str([i,j])].width = inner_grid_width
-            centroids.append(grid_graph[str([i,j])].centroid)
-            if i-inner_grid_width>=x1:
-                grid_graph[str([i,j])].l_nei = str([i-inner_grid_width,j])
-            if i+inner_grid_width<x2:
-                grid_graph[str([i,j])].r_nei = str([i+inner_grid_width,j])
-            if j-inner_grid_height>=y1:
-                grid_graph[str([i,j])].b_nei = str([i,j-inner_grid_height])
-            if j+inner_grid_height<y2:
-                grid_graph[str([i,j])].t_nei = str([i,j+inner_grid_height])
-            if i == 99 and j == 90:
-                print(' ')
-            if i == x1 or i == x2-inner_grid_width or j == y1 or j == y2-inner_grid_height:
-                for g in grids:
-                    if check_presence_inside([x2,y2],[grids[g].centroid],[x1,y1]) and (grids[g].passage == 1) and check_presence_inside(grids[g].tr,[grid_graph[str([i,j])].centroid],grids[g].bl):
-                        if grids[g].passage_l and grid_graph[str([i,j])].centroid[0] == grids[g].bl[0]+inner_grid_width/2:
-                            grid_graph[str([i,j])].passage = 1
-                            grid_graph[str([i,j])].l_nei = str(list((grid_graph[str([i,j])].bl-np.array([inner_grid_width,0])).astype(int)))
-                            grid_graph[grid_graph[str([i,j])].l_nei].r_nei = str([i,j])
-                        if grids[g].passage_r and grid_graph[str([i,j])].centroid[0] == grids[g].br[0]-inner_grid_width/2:
-                            grid_graph[str([i,j])].passage = 1
-                            grid_graph[str([i,j])].r_nei = str(list((grid_graph[str([i,j])].br).astype(int)))
-                            grid_graph[grid_graph[str([i,j])].r_nei].l_nei = str([i,j])
-                        if grids[g].passage_t and grid_graph[str([i,j])].centroid[1] == grids[g].tl[1]-inner_grid_height/2:
-                            grid_graph[str([i,j])].passage = 1
-                            grid_graph[str([i,j])].t_nei = str(list((grid_graph[str([i,j])].tl).astype(int)))
-                            grid_graph[grid_graph[str([i,j])].t_nei].b_nei = str([i,j])
-                        if grids[g].passage_b and grid_graph[str([i,j])].centroid[1] == grids[g].bl[1]+inner_grid_height/2:
-                            grid_graph[str([i,j])].passage = 1
-                            grid_graph[str([i,j])].b_nei = str(list((grid_graph[str([i,j])].bl-np.array([0,inner_grid_height])).astype(int)))
-                            grid_graph[grid_graph[str([i,j])].b_nei].t_nei = str([i,j])
-
-    return grid_graph,centroids
+    for i in range(min_x,max_x,grid_size):
+        for j in range(min_y,max_y,grid_size):
+            tl = np.array([i, j+grid_size])
+            tr = np.array([i+grid_size, j+grid_size])
+            bl = np.array([i, j])
+            br = np.array([i+grid_size, j])
+            g = Grid(tl=tl,bl=bl,tr=tr,br=br)
+            if is_grid_in_poly(polygon,g,min_x,min_y,max_x,max_y):
+                if str(bl - np.array([grid_size,0])) in grids:
+                    g.l_nei = str(bl - np.array([grid_size,0]))
+                    grids[str(bl - np.array([grid_size,0]))].r_nei = str(bl)
+                    # ax.plot([g.centroid[0],grids[str(bl - np.array([grid_size,0]))].centroid[0]],[g.centroid[1],grids[str(bl - np.array([grid_size,0]))].centroid[1]],color='maroon',linewidth=0.5)
+                if str(br) in grids:
+                    g.r_nei = str(br)
+                    grids[str(br)].l_nei = str(bl)
+                    # ax.plot([g.centroid[0],grids[str(br)].centroid[0]],[g.centroid[1],grids[str(br)].centroid[1]],color='maroon',linewidth=0.5)
+                if str(tl) in grids:
+                    g.t_nei = str(tl)
+                    grids[str(tl)].b_nei = str(bl)
+                    # ax.plot([g.centroid[0],grids[str(tl)].centroid[0]],[g.centroid[1],grids[str(tl)].centroid[1]],color='maroon',linewidth=0.5)
+                if str(bl - np.array([0,grid_size])) in grids:
+                    g.b_nei = str(bl - np.array([0,grid_size]))
+                    grids[str(bl - np.array([0,grid_size]))].t_nei = str(bl)
+                    # ax.plot([g.centroid[0],grids[str(bl - np.array([0,grid_size]))].centroid[0]],[g.centroid[1],grids[str(bl - np.array([0,grid_size]))].centroid[1]],color='maroon',linewidth=0.5)
+                grids[str(bl)] = g
+                # x = grids[str(bl)].get_x()
+                # y = grids[str(bl)].get_y()
+                # ax.plot(x,y,color='green',linewidth=0.5)
+                
+    return grids
 
 #   Path planning for searcher robots              
 
@@ -1325,8 +1143,8 @@ def plot_mesh(fig,ax,grid,title,grid_mesh,without_bar=0):
     for i in x:
         verti = []
         for j in y:
-            if str([i, j]) in grid:
-                verti.append(grid[str([i,j])].heuristics)
+            if str(np.array([i, j])) in grid:
+                verti.append(grid[str(np.array([i, j]))].heuristics)
             else:
                 verti.append(0)
         z.append(verti)
@@ -1425,17 +1243,18 @@ def searchers(num_robots,grid_w,grid_h,grid,ax = None):
     return robots
 
 def update_prob_costs(grids,present_locs):
-    for g in grids: #   Update the Costs and Probabilities of the grids
-        for l in present_locs:
-            if l==g:
-                # grids[g].probability -= 0#1/(arena_h*arena_w)
-                # if grids[g].probability<0:
-                #     grids[g].probability=0
-                # elif grids[g].probability>1:
-                #     grids[g].probability=1
-                grids[g].heuristics += 0.05#50/len(grids)
-            # else:
-            #     grids[g].probability += 0#1/(arena_h*arena_w*len(present_locs))
+    # for g in grids: #   Update the Costs and Probabilities of the grids
+    for l in present_locs:
+        # if str(l)==g:
+        # grids[g].probability -= 0#1/(arena_h*arena_w)
+        # if grids[g].probability<0:
+        #     grids[g].probability=0
+        # elif grids[g].probability>1:
+        #     grids[g].probability=1
+        grids[str(l)].heuristics += 0.05#50/len(grids)
+        # else:
+        #     grids[g].probability += 0#1/(arena_h*arena_w*len(present_locs))
+    # return grids
 
 def dump_mesh(grid):
     values_x = []
@@ -1457,9 +1276,10 @@ def dump_mesh(grid):
         z.append(verti)
     z = np.array(z).T
     return x,y,z
+
 # Single robot
-_1_static_intruder_random_arena = 0
-if _1_static_intruder_random_arena:
+static_intruder = 0
+if static_intruder:
     path_ = os.path.realpath(os.path.dirname(__file__))
     fig,ax = plt.subplots()
     plt.box(False)
@@ -1471,24 +1291,19 @@ if _1_static_intruder_random_arena:
     # ax = None
     itera = np.random.randint(50)
     print('itera :',itera)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10,ax=ax)
-
-    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
-
-    rectangles = []
-    for r in rectangles_nodes:
-        rectangles.append(r.get_corners())
-
-
-    grid_graph = {}
-
+    
+    tile_sixe = 10
     grid_height = 5
     grid_width = 5
-    area_reactangles = []
-    for r in range(len(rectangles)):
-        # ax = None
-        grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
-
+    
+    # Random simple connected rectilinear polygon
+    boundary,edges,start_edge,end_edge = Inflate_Cut_algorithm(20,g_size=tile_sixe,ax=ax)
+    boundary1 = get_area_vertices(np.concatenate((boundary[2:],boundary[:3]),axis=0))
+    ax.clear()
+    ax.plot(boundary1[:,0],boundary1[:,1],color='indigo')
+    
+    grid_graph = Grid_graph(boundary1,grid_size=grid_height,ax=ax)
+    
     # plt.ioff()
     # plt.show()
     time = []
@@ -1598,8 +1413,8 @@ if _1_static_intruder_random_arena:
     # pkl.dump(bag,fileObject)
     # fileObject.close()
 
-_1_dynamic_intruder_random_arena = 1
-if _1_dynamic_intruder_random_arena:
+dynamic_intruder = 1
+if dynamic_intruder:
     path_ = os.path.realpath(os.path.dirname(__file__))
     fig,ax = plt.subplots()
     plt.box(False)
@@ -1611,24 +1426,18 @@ if _1_dynamic_intruder_random_arena:
     # ax = None
     itera = np.random.randint(50)
     print('itera :',itera)
-    boundary,edges,start_edge,end_edge,grids = Inflate_Cut_algorithm(20,g_size=10,ax=ax)
-
-    rectangles_nodes,grids = get_rectangles(grids,get_area_vertices(boundary),ax)
-
-    rectangles = []
-    for r in rectangles_nodes:
-        rectangles.append(r.get_corners())
-
-    k_max = 0
-    grid_graph = {}
-    HSC = []
+    tile_sixe = 10
     grid_height = 5
     grid_width = 5
-    area_reactangles = []
-    for r in range(len(rectangles)):
-        # ax = None
-        grid_graph,centroids = make_grid(min(np.array(rectangles[r])[:,0]),min(np.array(rectangles[r])[:,1]),max(np.array(rectangles[r])[:,0]),max(np.array(rectangles[r])[:,1]),grid_height,grid_width,ax,grid_graph,grids,r)
-
+    
+    # Random simple connected rectilinear polygon
+    boundary,edges,start_edge,end_edge = Inflate_Cut_algorithm(20,g_size=tile_sixe,ax=ax)
+    boundary1 = get_area_vertices(np.concatenate((boundary[2:],boundary[:3]),axis=0))
+    ax.clear()
+    ax.plot(boundary1[:,0],boundary1[:,1],color='indigo')
+    
+    grid_graph = Grid_graph(boundary1,grid_size=grid_height,ax=ax)
+    
     # plt.ioff()
     # plt.show()
     time = []
